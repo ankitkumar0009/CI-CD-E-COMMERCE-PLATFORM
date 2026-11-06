@@ -93,3 +93,4 @@ ingress:
 podDisruptionBudget:
   enabled: true
   minAvailable: 2
+

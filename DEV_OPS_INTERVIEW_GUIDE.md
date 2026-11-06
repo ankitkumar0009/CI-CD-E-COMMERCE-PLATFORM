@@ -150,3 +150,4 @@ kubectl rollout status deployment/ecommerce-backend -n ecommerce-prod
 helm lint kubernetes/helm/ecommerce-platform
 helm install ecommerce-release kubernetes/helm/ecommerce-platform -n ecommerce-prod
 ```
+

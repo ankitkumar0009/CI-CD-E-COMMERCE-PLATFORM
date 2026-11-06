@@ -49,3 +49,4 @@ spec:
           type: Utilization
           averageUtilization: {{ .Values.frontend.autoscaling.targetCPUUtilizationPercentage }}
 {{- end }}
+

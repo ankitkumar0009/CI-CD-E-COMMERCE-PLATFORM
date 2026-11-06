@@ -54,3 +54,4 @@ spec:
               port: http
             initialDelaySeconds: {{ .Values.backend.probes.readiness.initialDelaySeconds }}
             periodSeconds: {{ .Values.backend.probes.readiness.periodSeconds }}
+
