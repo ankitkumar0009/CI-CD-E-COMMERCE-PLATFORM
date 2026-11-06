@@ -13,3 +13,4 @@ db.createUser({
 });
 
 print('✅ Created ecommerce_devops database and application user.');
+

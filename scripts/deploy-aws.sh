@@ -63,3 +63,4 @@ kubectl rollout status deployment/ecommerce-frontend -n ecommerce-prod --timeout
 
 echo -e "\n\033[32m✔ Deployment complete! Application is live on AWS EKS.\033[0m"
 kubectl get services,ingress -n ecommerce-prod
+

@@ -57,3 +57,4 @@ spec:
                 name: ecommerce-frontend
                 port:
                   number: 80
+

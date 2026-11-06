@@ -57,3 +57,4 @@ output "secrets_manager_secret_arn" {
   description = "AWS Secrets Manager Secret ARN"
   value       = aws_secretsmanager_secret.app_secrets.arn
 }
+

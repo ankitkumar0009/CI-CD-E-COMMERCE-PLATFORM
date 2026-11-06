@@ -1,0 +1,16 @@
+apiVersion: v2
+name: ecommerce-platform
+description: Production-grade Helm Chart for CloudOps E-Commerce Full-Stack Platform on AWS EKS
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - ecommerce
+  - devops
+  - sre
+  - aws
+  - eks
+  - kubernetes
+maintainers:
+  - name: DevOps Engineering Team
+    email: sre@ecommerce.cloud

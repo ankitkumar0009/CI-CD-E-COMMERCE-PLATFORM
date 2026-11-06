@@ -14,3 +14,4 @@ module.exports = {
   environment: process.env.ENVIRONMENT || 'Production - AWS EKS',
   region: process.env.AWS_REGION || 'us-east-1'
 };
+

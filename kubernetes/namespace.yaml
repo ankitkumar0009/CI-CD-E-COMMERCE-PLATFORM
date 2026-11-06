@@ -6,3 +6,4 @@ metadata:
     name: ecommerce-prod
     environment: production
     managed-by: argocd-or-github-actions
+

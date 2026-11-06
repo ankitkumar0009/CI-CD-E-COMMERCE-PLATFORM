@@ -16,3 +16,4 @@ router.get('/analytics', protect, adminOnly, async (req, res, next) => {
 });
 
 module.exports = router;
+

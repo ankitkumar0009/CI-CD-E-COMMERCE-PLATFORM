@@ -218,3 +218,4 @@ export const ArchitectureDiagram = () => {
     </section>
   );
 };
+

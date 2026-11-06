@@ -12,3 +12,4 @@ if [ -f "backend/src/scripts/seed.js" ]; then
 else
   echo "Seed script found at backend/src/scripts/seed.js"
 fi
+

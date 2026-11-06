@@ -1,0 +1,271 @@
+{
+  "info": {
+    "name": "CloudOps E-Commerce Platform API Collection",
+    "description": "Production REST API collection for CloudOps E-Commerce Platform including authentication, hardware products catalog, shopping cart, orders, K8s probes, Prometheus metrics, and DevOps telemetry.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health & Observability",
+      "item": [
+        {
+          "name": "L7 Health Status (/health)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          }
+        },
+        {
+          "name": "Kubernetes Liveness Probe (/health/live)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health/live"
+          }
+        },
+        {
+          "name": "Kubernetes Readiness Probe (/health/ready)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health/ready"
+          }
+        },
+        {
+          "name": "Prometheus Scrape Endpoint (/metrics)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/metrics"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Authentication",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ecommerce.io\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login as Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@ecommerce.io\",\n  \"password\": \"User@123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Register New Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sarah DevOps\",\n  \"email\": \"sarah@cloudops.io\",\n  \"password\": \"Secret@123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Get Current User Profile (/api/auth/me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Products Catalog",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/products"
+          }
+        },
+        {
+          "name": "Filter Products by Category",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/products?category=Laptops+%26+Computers"
+          }
+        },
+        {
+          "name": "Search Products by Keyword",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/products?search=Sony"
+          }
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/products/prod_001"
+          }
+        },
+        {
+          "name": "Get Categories with Counts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/products/categories"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Shopping Cart & Wishlist",
+      "item": [
+        {
+          "name": "Get Active Cart",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cart"
+          }
+        },
+        {
+          "name": "Add Item to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"prod_002\",\n  \"quantity\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/cart"
+          }
+        },
+        {
+          "name": "Get Wishlist Items",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cart/wishlist/items"
+          }
+        },
+        {
+          "name": "Toggle Wishlist Item",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/cart/wishlist/prod_001"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Orders & Fulfillment",
+      "item": [
+        {
+          "name": "Place New Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"prod_002\",\n      \"name\": \"Sony WH-1000XM5 Wireless Headphones\",\n      \"price\": 398.00,\n      \"quantity\": 1,\n      \"image\": \"https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1000&q=80\"\n    }\n  ],\n  \"shippingAddress\": {\n    \"fullName\": \"Jane CloudEngineer\",\n    \"street\": \"456 Kubernetes Blvd, Suite 800\",\n    \"city\": \"Seattle\",\n    \"state\": \"WA\",\n    \"postalCode\": \"98101\",\n    \"country\": \"United States\"\n  },\n  \"paymentMethod\": \"Credit Card\",\n  \"subtotal\": 398.00,\n  \"tax\": 31.84,\n  \"shippingFee\": 0,\n  \"total\": 429.84\n}"
+            },
+            "url": "{{baseUrl}}/api/orders"
+          }
+        },
+        {
+          "name": "Get My Orders",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/orders/my-orders"
+          }
+        },
+        {
+          "name": "Get Order Details by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/orders/ord_1001"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. DevOps Telemetry & SRE",
+      "item": [
+        {
+          "name": "System Status & Memory Telemetry",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/devops/status"
+          }
+        },
+        {
+          "name": "CI/CD Pipeline History",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/devops/pipeline-history"
+          }
+        },
+        {
+          "name": "Trigger Simulated CI/CD Pipeline",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch\": \"main\",\n  \"message\": \"chore(canary): postman automated build trigger\"\n}"
+            },
+            "url": "{{baseUrl}}/api/devops/pipeline/trigger"
+          }
+        },
+        {
+          "name": "Kubernetes Pod & Node Topology",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/devops/k8s-topology"
+          }
+        },
+        {
+          "name": "Docker & ECR Registry Images",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/devops/docker-info"
+          }
+        }
+      ]
+    }
+  ]
+}

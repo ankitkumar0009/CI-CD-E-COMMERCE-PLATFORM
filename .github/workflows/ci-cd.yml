@@ -184,3 +184,4 @@ jobs:
           echo "Checking cluster service discovery..."
           kubectl get pods -n ecommerce-prod -o wide
           echo "✅ All backend and frontend replicas are in Ready state."
+

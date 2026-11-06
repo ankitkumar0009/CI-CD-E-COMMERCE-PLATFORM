@@ -49,3 +49,4 @@ resource "aws_iam_policy" "secrets_read_policy" {
     ]
   })
 }
+

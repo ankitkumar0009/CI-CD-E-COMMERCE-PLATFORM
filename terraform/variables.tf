@@ -63,3 +63,4 @@ variable "github_repo" {
   type        = string
   default     = "your-username/ecommerce-devops-platform"
 }
+

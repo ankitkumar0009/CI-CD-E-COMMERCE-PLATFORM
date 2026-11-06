@@ -38,3 +38,4 @@ module.exports = {
   getDBStatus,
   isMongoConnected: () => isMongoConnected
 };
+

@@ -26,3 +26,4 @@ metadata:
 data:
   VITE_API_URL: "/api"
   VITE_APP_ENV: "production"
+

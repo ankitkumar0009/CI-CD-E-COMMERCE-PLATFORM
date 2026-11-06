@@ -290,3 +290,4 @@ export const Navbar = ({ onOpenAuth }) => {
     </header>
   );
 };
+

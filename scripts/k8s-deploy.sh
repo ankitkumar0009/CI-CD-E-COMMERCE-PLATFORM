@@ -25,3 +25,4 @@ kubectl rollout status deployment/ecommerce-frontend -n $NAMESPACE --timeout=120
 
 echo "All pods are running:"
 kubectl get pods -n $NAMESPACE -o wide
+

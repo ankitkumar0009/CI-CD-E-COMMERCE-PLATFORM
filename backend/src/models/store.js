@@ -413,3 +413,4 @@ class DataStore {
 // Singleton instance
 const store = new DataStore();
 module.exports = store;
+

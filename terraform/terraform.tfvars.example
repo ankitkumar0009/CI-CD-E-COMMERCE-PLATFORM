@@ -10,3 +10,4 @@ db_instance_class   = "db.t3.medium"
 db_name             = "ecommerce_prod"
 db_username         = "cloudops_admin"
 github_repo         = "your-username/ecommerce-devops-platform"
+

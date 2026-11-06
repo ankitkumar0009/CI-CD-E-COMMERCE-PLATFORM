@@ -18,3 +18,4 @@ router.get('/admin/all', protect, adminOnly, getAllOrders);
 router.put('/admin/:id/status', protect, adminOnly, updateOrderStatus);
 
 module.exports = router;
+

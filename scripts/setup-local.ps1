@@ -46,3 +46,4 @@ if ($choice -eq "1") {
     Write-Host "Terminal 1 (Backend API):  cd backend; npm run dev" -ForegroundColor White
     Write-Host "Terminal 2 (Frontend UI):  cd frontend; npm run dev" -ForegroundColor White
 }
+
