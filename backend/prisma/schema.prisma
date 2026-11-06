@@ -1,0 +1,458 @@
+// ==============================================================================
+// SHOPSPHERE - All-in-One Multi-Vendor E-Commerce Marketplace
+// Production PostgreSQL Prisma Schema
+// ==============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  SELLER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum KycStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum StoreStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum ProductStatus {
+  PENDING_APPROVAL
+  ACTIVE
+  REJECTED
+  OUT_OF_STOCK
+}
+
+enum OrderStatus {
+  PLACED
+  CONFIRMED
+  SHIPPED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum SellerOrderStatus {
+  PENDING
+  ACCEPTED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  UPI
+  CARD
+  NETBANKING
+  WALLET
+  RAZORPAY
+}
+
+enum PayoutStatus {
+  REQUESTED
+  PROCESSING
+  TRANSFERRED
+  FAILED
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PROCESSED
+}
+
+enum AddressType {
+  HOME
+  WORK
+  OTHER
+}
+
+enum NotificationRole {
+  CUSTOMER
+  SELLER
+  SUPER_ADMIN
+}
+
+// 1. Users Table
+model User {
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  passwordHash  String?
+  googleId      String?        @unique
+  avatar        String?
+  role          Role           @default(CUSTOMER)
+  isVerified    Boolean        @default(false)
+  phone         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  customer      Customer?
+  seller        Seller?
+  addresses     Address[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+// 2. Customers Table
+model Customer {
+  id              String      @id @default(uuid())
+  userId          String      @unique
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders          Order[]
+  reviews         Review[]
+  refunds         Refund[]
+  createdAt       DateTime    @default(now())
+}
+
+// 3. Sellers Table
+model Seller {
+  id                String       @id @default(uuid())
+  userId            String       @unique
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName      String
+  panNumber         String
+  gstin             String?
+  bankAccountNumber String
+  bankIfsc          String
+  bankName          String
+  kycStatus         KycStatus    @default(PENDING)
+  kycNotes          String?
+  commissionRate    Decimal      @default(10.00) // Default 10% platform fee
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  store             Store?
+  payouts           Payout[]
+}
+
+// 4. Stores Table
+model Store {
+  id          String        @id @default(uuid())
+  sellerId    String        @unique
+  seller      Seller        @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  name        String        @unique
+  slug        String        @unique
+  description String?
+  logo        String?
+  banner      String?
+  rating      Decimal       @default(5.00)
+  numRatings  Int           @default(0)
+  isVerified  Boolean       @default(false)
+  status      StoreStatus   @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  products     Product[]
+  sellerOrders SellerOrder[]
+  commissions  Commission[]
+
+  @@index([slug])
+  @@index([status])
+}
+
+// 5. Categories Table (Supports the 14 mandatory categories)
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  icon        String?
+  image       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products    Product[]
+
+  @@index([slug])
+}
+
+// 6. Products Table
+model Product {
+  id            String        @id @default(uuid())
+  storeId       String
+  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  categoryId    String
+  category      Category      @relation(fields: [categoryId], references: [id])
+  name          String
+  slug          String        @unique
+  description   String
+  price         Decimal       @db.Decimal(10, 2)
+  comparePrice  Decimal?      @db.Decimal(10, 2)
+  costPrice     Decimal?      @db.Decimal(10, 2)
+  stock         Int           @default(0)
+  sku           String?       @unique
+  image         String
+  images        Json          // String[] array of image URLs
+  specs         Json?         // Key-value specifications
+  status        ProductStatus @default(ACTIVE)
+  rating        Decimal       @default(5.00) @db.Decimal(3, 2)
+  numReviews    Int           @default(0)
+  isFeatured    Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  inventory     Inventory?
+  orderItems    OrderItem[]
+  reviews       Review[]
+
+  @@index([storeId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([price])
+}
+
+// 7. Inventory Table
+model Inventory {
+  id                 String   @id @default(uuid())
+  productId          String   @unique
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity           Int      @default(0)
+  lowStockThreshold  Int      @default(5)
+  reorderQuantity    Int      @default(20)
+  updatedAt          DateTime @updatedAt
+}
+
+// 8. Addresses Table
+model Address {
+  id          String      @id @default(uuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName    String
+  phone       String
+  street      String
+  landmark    String?
+  city        String
+  state       String
+  pincode     String
+  country     String      @default("India")
+  isDefault   Boolean     @default(false)
+  addressType AddressType @default(HOME)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  orders      Order[]
+
+  @@index([userId])
+}
+
+// 9. Orders Table (Parent Order)
+model Order {
+  id                String        @id @default(uuid())
+  orderNumber       String        @unique
+  customerId        String
+  customer          Customer      @relation(fields: [customerId], references: [id])
+  deliveryAddressId String
+  deliveryAddress   Address       @relation(fields: [deliveryAddressId], references: [id])
+  subtotal          Decimal       @db.Decimal(10, 2)
+  tax               Decimal       @db.Decimal(10, 2)
+  shippingFee       Decimal       @default(0.00) @db.Decimal(10, 2)
+  discount          Decimal       @default(0.00) @db.Decimal(10, 2)
+  totalAmount       Decimal       @db.Decimal(10, 2)
+  paymentStatus     PaymentStatus @default(PENDING)
+  orderStatus       OrderStatus   @default(PLACED)
+  placedAt          DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  sellerOrders      SellerOrder[]
+  orderItems        OrderItem[]
+  payments          Payment[]
+  refunds           Refund[]
+
+  @@index([orderNumber])
+  @@index([customerId])
+  @@index([orderStatus])
+}
+
+// 10. SellerOrders Table (Sub-Order per Store for multi-vendor separation)
+model SellerOrder {
+  id               String            @id @default(uuid())
+  orderId          String
+  order            Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  storeId          String
+  store            Store             @relation(fields: [storeId], references: [id])
+  sellerSubtotal   Decimal           @db.Decimal(10, 2)
+  sellerTax        Decimal           @db.Decimal(10, 2)
+  sellerShipping   Decimal           @default(0.00) @db.Decimal(10, 2)
+  commissionAmount Decimal           @db.Decimal(10, 2)
+  sellerNetPayout  Decimal           @db.Decimal(10, 2)
+  status           SellerOrderStatus @default(PENDING)
+  shippingCourier  String?
+  trackingNumber   String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  orderItems       OrderItem[]
+  commission       Commission?
+  refunds          Refund[]
+
+  @@index([orderId])
+  @@index([storeId])
+  @@index([status])
+}
+
+// 11. OrderItems Table
+model OrderItem {
+  id            String       @id @default(uuid())
+  orderId       String
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sellerOrderId String
+  sellerOrder   SellerOrder  @relation(fields: [sellerOrderId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product      @relation(fields: [productId], references: [id])
+  productName   String
+  productImage  String
+  price         Decimal      @db.Decimal(10, 2)
+  quantity      Int          @default(1)
+  totalPrice    Decimal      @db.Decimal(10, 2)
+
+  @@index([orderId])
+  @@index([sellerOrderId])
+}
+
+// 12. Payments Table (Real Razorpay Verification)
+model Payment {
+  id                 String        @id @default(uuid())
+  orderId            String
+  order              Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  razorpayOrderId    String        @unique
+  razorpayPaymentId  String?       @unique
+  razorpaySignature  String?
+  method             PaymentMethod @default(RAZORPAY)
+  amount             Decimal       @db.Decimal(10, 2)
+  currency           String        @default("INR")
+  status             PaymentStatus @default(PENDING)
+  paidAt             DateTime?
+  createdAt          DateTime      @default(now())
+
+  @@index([razorpayOrderId])
+}
+
+// 13. Commissions Table
+model Commission {
+  id               String      @id @default(uuid())
+  sellerOrderId    String      @unique
+  sellerOrder      SellerOrder @relation(fields: [sellerOrderId], references: [id], onDelete: Cascade)
+  storeId          String
+  store            Store       @relation(fields: [storeId], references: [id])
+  ratePercent      Decimal     @db.Decimal(5, 2)
+  commissionAmount Decimal     @db.Decimal(10, 2)
+  gstOnCommission  Decimal     @db.Decimal(10, 2)
+  netCommission    Decimal     @db.Decimal(10, 2)
+  createdAt        DateTime    @default(now())
+}
+
+// 14. Payouts Table (Seller Settlements)
+model Payout {
+  id                   String       @id @default(uuid())
+  sellerId             String
+  seller               Seller       @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  amount               Decimal      @db.Decimal(10, 2)
+  razorpayFundAccountId String?
+  razorpayPayoutId     String?
+  status               PayoutStatus @default(REQUESTED)
+  bankRef              String?
+  requestedAt          DateTime     @default(now())
+  processedAt          DateTime?
+
+  @@index([sellerId])
+  @@index([status])
+}
+
+// 15. Refunds Table
+model Refund {
+  id               String       @id @default(uuid())
+  orderId          String
+  order            Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sellerOrderId    String?
+  sellerOrder      SellerOrder? @relation(fields: [sellerOrderId], references: [id])
+  customerId       String
+  customer         Customer     @relation(fields: [customerId], references: [id])
+  amount           Decimal      @db.Decimal(10, 2)
+  reason           String
+  status           RefundStatus @default(REQUESTED)
+  razorpayRefundId String?
+  requestedAt      DateTime     @default(now())
+  processedAt      DateTime?
+
+  @@index([orderId])
+  @@index([status])
+}
+
+// 16. Reviews Table
+model Review {
+  id                  String   @id @default(uuid())
+  productId           String
+  product             Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customerId          String
+  customer            Customer @relation(fields: [customerId], references: [id])
+  rating              Int      @default(5)
+  title               String?
+  comment             String
+  images              Json?
+  isVerifiedPurchase  Boolean  @default(true)
+  createdAt           DateTime @default(now())
+
+  @@index([productId])
+}
+
+// 17. Notifications Table
+model Notification {
+  id            String           @id @default(uuid())
+  recipientId   String
+  user          User             @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientRole NotificationRole
+  title         String
+  message       String
+  type          String           // "ORDER", "PAYMENT", "KYC", "SETTLEMENT", "REFUND"
+  link          String?
+  isRead        Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+
+  @@index([recipientId])
+  @@index([isRead])
+}
+
+// 18. AuditLogs Table
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String
+  actor      User     @relation(fields: [actorId], references: [id])
+  actorRole  Role
+  action     String   // e.g. "APPROVE_SELLER", "UPDATE_COMMISSION", "APPROVE_REFUND"
+  entityType String   // e.g. "Seller", "Order", "Category"
+  entityId   String
+  details    Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entityType])
+}

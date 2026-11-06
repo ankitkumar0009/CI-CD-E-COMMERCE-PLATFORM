@@ -28,3 +28,4 @@ Write-Host "   Frontend SPA:     http://localhost:3000" -ForegroundColor White
 Write-Host "   Backend API:      http://localhost:5000" -ForegroundColor White
 Write-Host "   DevOps Dashboard: http://localhost:3000/devops" -ForegroundColor White
 Write-Host "   Prometheus:       http://localhost:5000/metrics" -ForegroundColor White
+

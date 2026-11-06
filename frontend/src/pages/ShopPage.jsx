@@ -4,14 +4,22 @@ import { ProductCard } from '../components/products/ProductCard';
 import { api } from '../services/api';
 import { Search, Filter, SlidersHorizontal, RotateCcw, X, Check } from 'lucide-react';
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   'All',
+  'Electronics',
+  'Fashion & Clothing',
+  'Mobile Phones',
   'Laptops & Computers',
-  'Audio & Headphones',
-  'Smart Devices & Wearables',
-  'Cameras & Video',
-  'Gaming & Peripherals',
-  'Smart Home'
+  'Shoes & Footwear',
+  'Grocery & Daily Essentials',
+  'Home & Kitchen',
+  'Furniture',
+  'Beauty & Personal Care',
+  'Sports & Fitness',
+  'Books & Stationery',
+  'Toys & Baby Products',
+  'Watches & Accessories',
+  'Automotive Accessories'
 ];
 
 export const ShopPage = () => {
@@ -168,7 +176,7 @@ export const ShopPage = () => {
                   Categories
                 </h3>
                 <div className="space-y-1">
-                  {CATEGORIES.map((cat) => (
+                  {DEFAULT_CATEGORIES.map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setCategory(cat)}

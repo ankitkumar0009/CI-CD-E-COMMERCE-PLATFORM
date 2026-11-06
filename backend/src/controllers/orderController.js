@@ -12,7 +12,8 @@ const createOrder = async (req, res, next) => {
       });
     }
 
-    if (!shippingAddress || !shippingAddress.street || !shippingAddress.city) {
+    const hasStreet = shippingAddress && (shippingAddress.street || shippingAddress.addressLine1);
+    if (!shippingAddress || !hasStreet || !shippingAddress.city) {
       return res.status(400).json({
         success: false,
         message: 'Valid shipping address is required'

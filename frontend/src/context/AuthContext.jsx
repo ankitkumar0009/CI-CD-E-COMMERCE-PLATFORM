@@ -1,3 +1,8 @@
+// ==============================================================================
+// SHOPSPHERE - Authentication Context Provider
+// Roles: CUSTOMER, SELLER, SUPER_ADMIN with Demo Switcher & Google OAuth Flow
+// ==============================================================================
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../services/api';
 
@@ -8,29 +13,39 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('cloudops_token');
-    const savedUser = localStorage.getItem('cloudops_user');
+    const token = localStorage.getItem('shopsphere_token') || localStorage.getItem('cloudops_token');
+    const savedUser = localStorage.getItem('shopsphere_user') || localStorage.getItem('cloudops_user');
 
     if (token && savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        setUser(parsed);
         // Verify token with backend
         api.getMe()
           .then(res => {
             if (res.success) {
               setUser(res.data);
-              localStorage.setItem('cloudops_user', JSON.stringify(res.data));
+              localStorage.setItem('shopsphere_user', JSON.stringify(res.data));
             }
           })
           .catch(() => {
-            // If token invalid, keep cached user for offline demo resilience or log out
+            // Keep cached user for offline development resilience
           })
           .finally(() => setLoading(false));
       } catch (e) {
         setLoading(false);
       }
     } else {
-      // Default to demo customer login for effortless initial exploration
+      // Auto-initialize demo customer for instant testing
+      const defaultDemo = {
+        _id: 'usr-customer-1',
+        id: 'usr-customer-1',
+        name: 'Rahul Sharma (Customer)',
+        email: 'customer@shopsphere.io',
+        role: 'CUSTOMER',
+        avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80'
+      };
+      setUser(defaultDemo);
       setLoading(false);
     }
   }, []);
@@ -39,37 +54,89 @@ export const AuthProvider = ({ children }) => {
     const res = await api.login({ email, password });
     if (res.success) {
       setUser(res.data.user);
-      localStorage.setItem('cloudops_token', res.data.token);
-      localStorage.setItem('cloudops_user', JSON.stringify(res.data.user));
+      localStorage.setItem('shopsphere_token', res.data.token);
+      localStorage.setItem('shopsphere_user', JSON.stringify(res.data.user));
     }
     return res;
   };
 
-  const register = async (name, email, password) => {
-    const res = await api.register({ name, email, password });
+  const register = async (userData) => {
+    const res = await api.register(userData);
     if (res.success) {
       setUser(res.data.user);
-      localStorage.setItem('cloudops_token', res.data.token);
-      localStorage.setItem('cloudops_user', JSON.stringify(res.data.user));
+      localStorage.setItem('shopsphere_token', res.data.token);
+      localStorage.setItem('shopsphere_user', JSON.stringify(res.data.user));
+    }
+    return res;
+  };
+
+  const googleLogin = async (googleData) => {
+    const res = await api.googleLogin(googleData);
+    if (res.success) {
+      setUser(res.data.user);
+      localStorage.setItem('shopsphere_token', res.data.token);
+      localStorage.setItem('shopsphere_user', JSON.stringify(res.data.user));
     }
     return res;
   };
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('shopsphere_token');
+    localStorage.removeItem('shopsphere_user');
     localStorage.removeItem('cloudops_token');
     localStorage.removeItem('cloudops_user');
   };
 
   const loginAsDemoAdmin = async () => {
-    return login('admin@ecommerce.io', 'Admin@123');
+    return login('admin@shopsphere.io', 'Admin@123').catch(() => {
+      // Fallback in case of mock offline
+      const admin = {
+        id: 'usr-admin-1',
+        _id: 'usr-admin-1',
+        name: 'Super Admin',
+        email: 'admin@shopsphere.io',
+        role: 'SUPER_ADMIN',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
+      };
+      setUser(admin);
+      localStorage.setItem('shopsphere_user', JSON.stringify(admin));
+    });
   };
 
-  const loginAsDemoUser = async () => {
-    return login('user@ecommerce.io', 'User@123');
+  const loginAsDemoSeller = async () => {
+    return login('seller@shopsphere.io', 'Seller@123').catch(() => {
+      const seller = {
+        id: 'usr-seller-1',
+        _id: 'usr-seller-1',
+        name: 'Apex Merchant',
+        email: 'seller@shopsphere.io',
+        role: 'SELLER',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'
+      };
+      setUser(seller);
+      localStorage.setItem('shopsphere_user', JSON.stringify(seller));
+    });
   };
 
-  const isAdmin = user?.role === 'admin';
+  const loginAsDemoCustomer = async () => {
+    return login('customer@shopsphere.io', 'Customer@123').catch(() => {
+      const customer = {
+        id: 'usr-customer-1',
+        _id: 'usr-customer-1',
+        name: 'Rahul Sharma',
+        email: 'customer@shopsphere.io',
+        role: 'CUSTOMER',
+        avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80'
+      };
+      setUser(customer);
+      localStorage.setItem('shopsphere_user', JSON.stringify(customer));
+    });
+  };
+
+  const role = user?.role?.toUpperCase();
+  const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN';
+  const isSeller = role === 'SELLER' || isAdmin;
 
   return (
     <AuthContext.Provider
@@ -78,10 +145,13 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         register,
+        googleLogin,
         logout,
         loginAsDemoAdmin,
-        loginAsDemoUser,
+        loginAsDemoSeller,
+        loginAsDemoCustomer,
         isAdmin,
+        isSeller,
         setUser
       }}
     >
@@ -91,4 +161,3 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-

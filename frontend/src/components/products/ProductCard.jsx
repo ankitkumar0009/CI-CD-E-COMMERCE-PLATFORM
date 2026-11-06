@@ -79,6 +79,16 @@ export const ProductCard = ({ product }) => {
             </h3>
           </Link>
 
+          {/* Seller / Store info */}
+          {product.sellerName && (
+            <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <span>Sold by:</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300 hover:text-cyan-500">
+                {product.sellerName}
+              </span>
+            </div>
+          )}
+
           {/* Ratings & Reviews */}
           <div className="flex items-center gap-1.5 mt-2">
             <div className="flex items-center text-amber-400">
@@ -98,11 +108,11 @@ export const ProductCard = ({ product }) => {
         <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
           <div>
             <div className="text-base font-extrabold text-slate-900 dark:text-white">
-              ${product.price.toFixed(2)}
+              ₹{Number(product.price).toLocaleString('en-IN')}
             </div>
             {product.originalPrice && product.originalPrice > product.price && (
               <div className="text-xs text-slate-400 line-through">
-                ${product.originalPrice.toFixed(2)}
+                ₹{Number(product.originalPrice).toLocaleString('en-IN')}
               </div>
             )}
           </div>

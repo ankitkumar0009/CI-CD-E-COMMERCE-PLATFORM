@@ -38,12 +38,25 @@ const protect = async (req, res, next) => {
 };
 
 const adminOnly = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
+  const role = req.user?.role?.toUpperCase();
+  if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
     next();
   } else {
     res.status(403).json({
       success: false,
       message: 'Access denied: Administrator privileges required'
+    });
+  }
+};
+
+const sellerOnly = (req, res, next) => {
+  const role = req.user?.role?.toUpperCase();
+  if (role === 'SELLER' || role === 'ADMIN' || role === 'SUPER_ADMIN') {
+    next();
+  } else {
+    res.status(403).json({
+      success: false,
+      message: 'Access denied: Seller privileges required'
     });
   }
 };
@@ -70,6 +83,6 @@ const optionalAuth = async (req, res, next) => {
 module.exports = {
   protect,
   adminOnly,
+  sellerOnly,
   optionalAuth
 };
-

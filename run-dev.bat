@@ -27,3 +27,4 @@ echo    - DevOps Dashboard:  http://localhost:3000/devops
 echo ==============================================================================
 echo Press any key to exit this launcher window (servers will continue running).
 pause >nul
+

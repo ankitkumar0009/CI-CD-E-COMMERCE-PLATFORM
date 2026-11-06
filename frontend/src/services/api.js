@@ -1,3 +1,9 @@
+// ==============================================================================
+// SHOPSPHERE - Unified API Client Service
+// Integrates 14 Categories, Multi-Vendor Operations, Razorpay Payments,
+// Seller Hub, Super Admin Control, and DevOps Telemetry
+// ==============================================================================
+
 const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const getHeaders = (isJson = true) => {
@@ -5,7 +11,7 @@ const getHeaders = (isJson = true) => {
   if (isJson) {
     headers['Content-Type'] = 'application/json';
   }
-  const token = localStorage.getItem('cloudops_token');
+  const token = localStorage.getItem('cloudops_token') || localStorage.getItem('shopsphere_token');
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -25,7 +31,7 @@ const handleResponse = async (response) => {
 };
 
 export const api = {
-  // Auth
+  // --- AUTH & USER PROFILE ---
   login: (credentials) =>
     fetch(`${BASE_URL}/auth/login`, {
       method: 'POST',
@@ -40,6 +46,13 @@ export const api = {
       body: JSON.stringify(userData)
     }).then(handleResponse),
 
+  googleLogin: (googleData) =>
+    fetch(`${BASE_URL}/auth/google`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(googleData)
+    }).then(handleResponse),
+
   getMe: () =>
     fetch(`${BASE_URL}/auth/me`, {
       headers: getHeaders()
@@ -52,7 +65,50 @@ export const api = {
       body: JSON.stringify(profileData)
     }).then(handleResponse),
 
-  // Products
+  getAddresses: () =>
+    fetch(`${BASE_URL}/auth/addresses`, {
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  addAddress: (addressData) =>
+    fetch(`${BASE_URL}/auth/addresses`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(addressData)
+    }).then(handleResponse),
+
+  // --- 14 CATEGORIES (PUBLIC & ADMIN CRUD) ---
+  getAllCategories: () =>
+    fetch(`${BASE_URL}/categories`, {
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  getCategories: () =>
+    fetch(`${BASE_URL}/categories`, {
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  createCategory: (catData) =>
+    fetch(`${BASE_URL}/categories`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(catData)
+    }).then(handleResponse),
+
+  updateCategory: (id, catData) =>
+    fetch(`${BASE_URL}/categories/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(catData)
+    }).then(handleResponse),
+
+  deleteCategory: (id) =>
+    fetch(`${BASE_URL}/categories/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  // --- PRODUCTS (MULTI-VENDOR) ---
   getProducts: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return fetch(`${BASE_URL}/products?${query}`, {
@@ -62,11 +118,6 @@ export const api = {
 
   getProduct: (id) =>
     fetch(`${BASE_URL}/products/${id}`, {
-      headers: getHeaders()
-    }).then(handleResponse),
-
-  getCategories: () =>
-    fetch(`${BASE_URL}/products/categories`, {
       headers: getHeaders()
     }).then(handleResponse),
 
@@ -97,7 +148,7 @@ export const api = {
       body: JSON.stringify(reviewData)
     }).then(handleResponse),
 
-  // Cart
+  // --- CART & WISHLIST ---
   getCart: () =>
     fetch(`${BASE_URL}/cart`, {
       headers: getHeaders()
@@ -129,7 +180,6 @@ export const api = {
       headers: getHeaders()
     }).then(handleResponse),
 
-  // Wishlist
   getWishlist: () =>
     fetch(`${BASE_URL}/cart/wishlist/items`, {
       headers: getHeaders()
@@ -141,7 +191,34 @@ export const api = {
       headers: getHeaders()
     }).then(handleResponse),
 
-  // Orders
+  // --- REAL RAZORPAY PAYMENT INTEGRATION ---
+  getPaymentConfig: () =>
+    fetch(`${BASE_URL}/payments/config`, {
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  createRazorpayOrder: (amount, receipt, notes = {}) =>
+    fetch(`${BASE_URL}/payments/razorpay/order`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ amount, receipt, notes })
+    }).then(handleResponse),
+
+  verifyRazorpayPayment: (verificationPayload) =>
+    fetch(`${BASE_URL}/payments/razorpay/verify`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(verificationPayload)
+    }).then(handleResponse),
+
+  requestRefund: (orderId, reason, amount) =>
+    fetch(`${BASE_URL}/payments/refund`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ orderId, reason, amount })
+    }).then(handleResponse),
+
+  // --- ORDERS ---
   createOrder: (orderData) =>
     fetch(`${BASE_URL}/orders`, {
       method: 'POST',
@@ -171,7 +248,137 @@ export const api = {
       body: JSON.stringify({ status })
     }).then(handleResponse),
 
-  // DevOps Telemetry & Monitoring
+  // --- SELLER PORTAL ---
+  getSellerProfile: () =>
+    fetch(`${BASE_URL}/seller/profile`, {
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  submitSellerKyc: (kycData) =>
+    fetch(`${BASE_URL}/seller/kyc`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(kycData)
+    }).then(handleResponse),
+
+  updateStoreProfile: (storeData) =>
+    fetch(`${BASE_URL}/seller/store`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(storeData)
+    }).then(handleResponse),
+
+  getSellerProducts: () =>
+    fetch(`${BASE_URL}/seller/products`, {
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  createSellerProduct: (productData) =>
+    fetch(`${BASE_URL}/seller/products`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(productData)
+    }).then(handleResponse),
+
+  updateSellerProduct: (id, productData) =>
+    fetch(`${BASE_URL}/seller/products/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(productData)
+    }).then(handleResponse),
+
+  deleteSellerProduct: (id) =>
+    fetch(`${BASE_URL}/seller/products/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  getSellerOrders: () =>
+    fetch(`${BASE_URL}/seller/orders`, {
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  updateSellerOrderStatus: (id, status, tracking = {}) =>
+    fetch(`${BASE_URL}/seller/orders/${id}/status`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ status, ...tracking })
+    }).then(handleResponse),
+
+  getSellerEarnings: () =>
+    fetch(`${BASE_URL}/seller/earnings`, {
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  requestSellerPayout: (amount) =>
+    fetch(`${BASE_URL}/seller/payouts`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ amount })
+    }).then(handleResponse),
+
+  // --- SUPER ADMIN DASHBOARD ---
+  getAdminAnalytics: () =>
+    fetch(`${BASE_URL}/admin/analytics`, {
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  getAllSellers: () =>
+    fetch(`${BASE_URL}/admin/sellers`, {
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  approveSellerKyc: (sellerId) =>
+    fetch(`${BASE_URL}/admin/sellers/${sellerId}/approve`, {
+      method: 'PUT',
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  rejectSellerKyc: (sellerId, reason) =>
+    fetch(`${BASE_URL}/admin/sellers/${sellerId}/reject`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ reason })
+    }).then(handleResponse),
+
+  updateSellerCommission: (sellerId, rate) =>
+    fetch(`${BASE_URL}/admin/sellers/${sellerId}/commission`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ rate })
+    }).then(handleResponse),
+
+  getAllRefunds: () =>
+    fetch(`${BASE_URL}/admin/refunds`, {
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  getAllUsers: () =>
+    fetch(`${BASE_URL}/admin/users`, {
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  toggleUserStatus: (userId) =>
+    fetch(`${BASE_URL}/admin/users/${userId}/status`, {
+      method: 'PUT',
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  getFinancialReportUrl: () => `${BASE_URL}/admin/export/financials`,
+
+  // --- NOTIFICATIONS ---
+  getNotifications: () =>
+    fetch(`${BASE_URL}/notifications`, {
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  markNotificationRead: (id) =>
+    fetch(`${BASE_URL}/notifications/${id}/read`, {
+      method: 'PUT',
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  // --- DEVOPS & OBSERVABILITY ---
   getDevOpsStatus: () =>
     fetch(`${BASE_URL}/devops/status`, {
       headers: getHeaders()
@@ -197,12 +404,5 @@ export const api = {
   getDockerInfo: () =>
     fetch(`${BASE_URL}/devops/docker-info`, {
       headers: getHeaders()
-    }).then(handleResponse),
-
-  // Admin Analytics
-  getAdminAnalytics: () =>
-    fetch(`${BASE_URL}/admin/analytics`, {
-      headers: getHeaders()
     }).then(handleResponse)
 };
-

@@ -1,3 +1,8 @@
+// ==============================================================================
+// SHOPSPHERE - Core Express Application
+// Multi-Vendor Architecture, Razorpay Payment Engine, Real-time DevOps Observability
+// ==============================================================================
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -10,11 +15,15 @@ const errorHandler = require('./middleware/errorHandler');
 // Route imports
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const sellerRoutes = require('./routes/sellerRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const devopsRoutes = require('./routes/devopsRoutes');
 const healthRoutes = require('./routes/healthRoutes');
-const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -27,7 +36,7 @@ app.use(helmet({
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-session-id']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-session-id', 'x-razorpay-signature']
 }));
 
 // Body Parsers
@@ -58,21 +67,27 @@ app.use('/health', healthRoutes);
 // --- API Endpoints ---
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
-app.use('/api/devops', devopsRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/seller', sellerRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/devops', devopsRoutes);
 
 // Root greeting / info endpoint
 app.get('/', (req, res) => {
   res.status(200).json({
-    message: 'Welcome to CloudOps E-Commerce Platform API',
+    platform: 'ShopSphere Multi-Vendor E-Commerce Marketplace',
     version: config.appVersion,
     environment: config.environment,
     documentation: '/api/docs',
     health: '/health',
     metrics: '/metrics',
-    status: '/api/devops/status'
+    status: '/api/devops/status',
+    categories: '/api/categories',
+    sellers: '/api/admin/sellers'
   });
 });
 
@@ -88,4 +103,3 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 module.exports = app;
-

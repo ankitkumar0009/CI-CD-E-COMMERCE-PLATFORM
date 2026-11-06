@@ -18,3 +18,4 @@ This directory houses specialized containerization profiles and documentation fo
 2. **Layer Caching**: `package*.json` is copied and installed prior to copying source code to maximize Docker layer cache hits.
 3. **Container Health Checks**: Both containers feature explicit `HEALTHCHECK` commands targeting HTTP endpoints (`/health` on port 5000, `/` on port 80).
 4. **Vulnerability Hardening**: Built images are scanned during CI/CD using Aqua Security's Trivy.
+

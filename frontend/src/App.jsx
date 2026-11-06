@@ -18,6 +18,7 @@ import { OrdersPage } from './pages/OrdersPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { WishlistPage } from './pages/WishlistPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { SellerDashboardPage } from './pages/seller/SellerDashboardPage';
 import { DevOpsDashboardPage } from './pages/DevOpsDashboardPage';
 
 export function App() {
@@ -44,6 +45,7 @@ export function App() {
                     <Route path="/profile" element={<ProfilePage />} />
                     <Route path="/wishlist" element={<WishlistPage />} />
                     <Route path="/admin" element={<AdminDashboardPage />} />
+                    <Route path="/seller" element={<SellerDashboardPage />} />
                     <Route path="/devops" element={<DevOpsDashboardPage />} />
                   </Routes>
                 </main>

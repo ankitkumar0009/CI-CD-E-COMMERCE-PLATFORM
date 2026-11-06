@@ -40,7 +40,8 @@ router.get('/ready', (req, res) => {
   if (dbStatus.connected) {
     res.status(200).json({
       status: 'READY',
-      database: dbStatus.engine
+      database: dbStatus.engine,
+      checks: { database: 'UP' }
     });
   } else {
     res.status(503).json({
