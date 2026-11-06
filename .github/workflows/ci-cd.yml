@@ -1,0 +1,186 @@
+name: Production CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: ecommerce-eks-cluster
+  ECR_FRONTEND_REPO: ecommerce-platform-frontend
+  ECR_BACKEND_REPO: ecommerce-platform-backend
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  # ============================================================================
+  # Stage 1: Quality Gate & Automated Testing
+  # ============================================================================
+  test-and-lint:
+    name: 🧪 Automated Testing & Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      # Backend Testing
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Execute Backend Unit & Integration Tests
+        working-directory: ./backend
+        run: npm test
+
+      # Frontend Testing & Compilation
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build Frontend SPA
+        working-directory: ./frontend
+        run: npm run build
+
+  # ============================================================================
+  # Stage 2: Security & Vulnerability Scanning (Trivy)
+  # ============================================================================
+  security-scan:
+    name: 🛡️ Container Vulnerability Audit
+    runs-on: ubuntu-latest
+    needs: test-and-lint
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Local Backend Docker Image for Scan
+        run: docker build -t backend-scan:${{ github.sha }} ./backend
+
+      - name: Run Trivy Vulnerability Scanner on Backend Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'backend-scan:${{ github.sha }}'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+  # ============================================================================
+  # Stage 3: Build & Push Docker Images to Amazon ECR
+  # ============================================================================
+  build-and-push-ecr:
+    name: 🐳 Docker Build & ECR Push
+    runs-on: ubuntu-latest
+    needs: [test-and-lint, security-scan]
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      image_tag: ${{ steps.set-tag.outputs.tag }}
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials via OIDC (Zero Long-Lived Secrets)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/ecommerce-platform-github-actions-role
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set Image Tag Output
+        id: set-tag
+        run: echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      # Set up Docker Buildx for multi-platform & layer caching
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build and Push Backend
+      - name: Build and Push Backend Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_BACKEND_REPO }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_BACKEND_REPO }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build and Push Frontend
+      - name: Build and Push Frontend Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND_REPO }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND_REPO }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================================================
+  # Stage 4: Deploy to Amazon EKS & Zero-Downtime Rollout Verification
+  # ============================================================================
+  deploy-to-eks:
+    name: ☸️ AWS EKS Rolling Deployment
+    runs-on: ubuntu-latest
+    needs: build-and-push-ecr
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/ecommerce-platform-github-actions-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Kubeconfig for EKS Cluster
+        run: |
+          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Apply Kubernetes Manifests
+        run: |
+          kubectl apply -f kubernetes/namespace.yaml
+          kubectl apply -f kubernetes/configmap.yaml
+          kubectl apply -f kubernetes/secrets.yaml
+          kubectl apply -f kubernetes/service.yaml
+          kubectl apply -f kubernetes/hpa.yaml
+          kubectl apply -f kubernetes/pdb.yaml
+
+      - name: Rolling Update Deployment Images
+        run: |
+          REGISTRY=123456789012.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          kubectl set image deployment/ecommerce-backend backend-api=$REGISTRY/${{ env.ECR_BACKEND_REPO }}:${{ github.sha }} -n ecommerce-prod
+          kubectl set image deployment/ecommerce-frontend frontend-ui=$REGISTRY/${{ env.ECR_FRONTEND_REPO }}:${{ github.sha }} -n ecommerce-prod
+
+      - name: Verify Zero-Downtime Rollout Status
+        run: |
+          kubectl rollout status deployment/ecommerce-backend -n ecommerce-prod --timeout=180s
+          kubectl rollout status deployment/ecommerce-frontend -n ecommerce-prod --timeout=180s
+
+      - name: Post-Deployment Synthetic Health Check
+        run: |
+          echo "Checking cluster service discovery..."
+          kubectl get pods -n ecommerce-prod -o wide
+          echo "✅ All backend and frontend replicas are in Ready state."

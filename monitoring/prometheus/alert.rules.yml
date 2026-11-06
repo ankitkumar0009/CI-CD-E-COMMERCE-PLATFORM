@@ -1,0 +1,42 @@
+groups:
+  - name: ecommerce_alerts
+    rules:
+      - alert: ServiceDown
+        expr: up{job="ecommerce-backend"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          team: sre
+        annotations:
+          summary: "E-Commerce backend API instance is down"
+          description: "Instance {{ $labels.instance }} has been unreachable for > 30 seconds."
+
+      - alert: HighHttpErrorRate
+        expr: (sum(rate(http_requests_total{status_code=~"5.."}[1m])) / sum(rate(http_requests_total[1m]))) * 100 > 5
+        for: 1m
+        labels:
+          severity: critical
+          team: backend-devs
+        annotations:
+          summary: "High HTTP 5xx Error Rate detected (>5%)"
+          description: "HTTP 5xx error rate is currently at {{ $value }}%."
+
+      - alert: HighRequestLatencyP95
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[2m])) by (le)) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "High p95 HTTP response latency"
+          description: "95th percentile latency is higher than 500ms (current: {{ $value }}s)."
+
+      - alert: HighMemoryUsage
+        expr: (process_resident_memory_bytes / 1024 / 1024) > 500
+        for: 2m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "Backend Node.js RSS memory exceeds 500MB"
+          description: "Node.js process RSS is at {{ $value }}MB."

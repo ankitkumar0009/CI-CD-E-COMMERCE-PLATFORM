@@ -1,0 +1,59 @@
+# ==============================================================================
+# Kubernetes Ingress: AWS Application Load Balancer / NGINX Ingress Routing
+# ==============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ecommerce-ingress
+  namespace: ecommerce-prod
+  labels:
+    app.kubernetes.io/part-of: ecommerce-platform
+  annotations:
+    kubernetes.io/ingress.class: "alb"
+    alb.ingress.kubernetes.io/scheme: "internet-facing"
+    alb.ingress.kubernetes.io/target-type: "ip"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/healthcheck-path: "/health"
+    alb.ingress.kubernetes.io/success-codes: "200"
+    # SSL/TLS Redirect annotation:
+    alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
+spec:
+  rules:
+    - http:
+        paths:
+          # API traffic routed to Node.js backend
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: ecommerce-backend
+                port:
+                  number: 5000
+
+          # Health checks routed to backend
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: ecommerce-backend
+                port:
+                  number: 5000
+
+          # Prometheus metrics scraper
+          - path: /metrics
+            pathType: Prefix
+            backend:
+              service:
+                name: ecommerce-backend
+                port:
+                  number: 5000
+
+          # Default root path routed to Frontend React SPA
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ecommerce-frontend
+                port:
+                  number: 80

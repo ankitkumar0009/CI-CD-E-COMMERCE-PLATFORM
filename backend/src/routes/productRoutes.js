@@ -1,0 +1,24 @@
+const express = require('express');
+const router = express.Router();
+const {
+  getProducts,
+  getProductById,
+  getCategories,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  addReview
+} = require('../controllers/productController');
+const { protect, adminOnly, optionalAuth } = require('../middleware/authMiddleware');
+
+router.get('/', getProducts);
+router.get('/categories', getCategories);
+router.get('/:id', getProductById);
+router.post('/:id/reviews', optionalAuth, addReview);
+
+// Admin-only management routes
+router.post('/', protect, adminOnly, createProduct);
+router.put('/:id', protect, adminOnly, updateProduct);
+router.delete('/:id', protect, adminOnly, deleteProduct);
+
+module.exports = router;

@@ -1,0 +1,12 @@
+# Example Terraform Variables Configuration
+aws_region          = "us-east-1"
+environment         = "production"
+project_name        = "ecommerce-platform"
+vpc_cidr            = "10.0.0.0/16"
+cluster_name        = "ecommerce-eks-cluster"
+eks_version         = "1.30"
+node_instance_types = ["t3.medium", "t3.large"]
+db_instance_class   = "db.t3.medium"
+db_name             = "ecommerce_prod"
+db_username         = "cloudops_admin"
+github_repo         = "your-username/ecommerce-devops-platform"
