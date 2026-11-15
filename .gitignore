@@ -1,44 +1,61 @@
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-.pnpm-debug.log*
-
-# Production build outputs
-dist/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
 build/
-coverage/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+ENV/
 
-# Environment files & Secrets
+# Environment Variables
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-terraform/terraform.tfvars
-terraform/*.tfstate
-terraform/*.tfstate.*
-terraform/.terraform/
-terraform/.terraform.lock.hcl
+!.env.example
 
-# IDE & Editor settings
+# Pytest / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# IDE & OS
 .vscode/
 .idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
 
-# Docker data mounts
-mongo_data/
-prometheus_data/
-grafana_data/
+# Database & Backups
+*.sqlite
+*.sqlite3
+backups/*.sql
+backups/*.dump
+postgres_data/
 
-# OS files
-*.log
+# Docker
+.docker/
 
+# Node / Frontend / Dependencies
+node_modules/
+**/node_modules/
+.npm/
+.yarn/
+dist/
+**/dist/

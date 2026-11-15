@@ -87,28 +87,29 @@ describe('🚀 ShopSphere Multi-Vendor API Automated Test Suite', () => {
     });
   });
 
-  describe('14 Product Categories', () => {
-    it('GET /api/categories should return all 14 mandatory product categories', async () => {
+  describe('15 Product Categories', () => {
+    it('GET /api/categories should return all 15 product departments', async () => {
       const res = await request(app).get('/api/categories');
       expect(res.statusCode).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.count).toBeGreaterThanOrEqual(14);
+      expect(res.body.count).toBeGreaterThanOrEqual(15);
 
       const categoryNames = res.body.data.map(c => c.name);
       expect(categoryNames).toContain('Electronics');
-      expect(categoryNames).toContain('Fashion & Clothing');
       expect(categoryNames).toContain('Mobile Phones');
-      expect(categoryNames).toContain('Laptops & Computers');
-      expect(categoryNames).toContain('Shoes & Footwear');
-      expect(categoryNames).toContain('Grocery & Daily Essentials');
-      expect(categoryNames).toContain('Home & Kitchen');
+      expect(categoryNames).toContain('Laptops');
+      expect(categoryNames).toContain('Fashion');
+      expect(categoryNames).toContain('Clothing');
+      expect(categoryNames).toContain('Shoes');
+      expect(categoryNames).toContain('Grocery');
+      expect(categoryNames).toContain('Home and Kitchen');
       expect(categoryNames).toContain('Furniture');
-      expect(categoryNames).toContain('Beauty & Personal Care');
-      expect(categoryNames).toContain('Sports & Fitness');
-      expect(categoryNames).toContain('Books & Stationery');
-      expect(categoryNames).toContain('Toys & Baby Products');
-      expect(categoryNames).toContain('Watches & Accessories');
-      expect(categoryNames).toContain('Automotive Accessories');
+      expect(categoryNames).toContain('Beauty Products');
+      expect(categoryNames).toContain('Sports');
+      expect(categoryNames).toContain('Books');
+      expect(categoryNames).toContain('Watches');
+      expect(categoryNames).toContain('Accessories');
+      expect(categoryNames).toContain('Toys');
     });
   });
 

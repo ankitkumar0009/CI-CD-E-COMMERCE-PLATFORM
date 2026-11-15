@@ -1,10 +1,12 @@
 // ==============================================================================
-// SHOPSPHERE - Enterprise Multi-Vendor In-Memory & Database Data Engine
-// Supports 14 Categories, Sellers, Stores, Multi-Address Customers,
-// Split Multi-Vendor Orders, Razorpay Payments, Payouts, Refunds & Notifications
+// SHOPSPHERE - Enterprise Multi-Vendor Marketplace Data Engine
+// 15 Categories, Customer Registration with Owner Approval (MODE 1 / MODE 2),
+// Real Razorpay Payments, Cash on Delivery (COD), Split-Seller Orders,
+// and Direct Gmail / Owner Notification Automation
 // ==============================================================================
 
 const bcrypt = require('bcryptjs');
+const emailService = require('../services/emailService');
 const { defaultUsers, sampleProducts, sampleOrders } = require('../data/seedData');
 const {
   CATEGORIES,
@@ -24,13 +26,21 @@ class ShopSphereStore {
   }
 
   reset() {
-    // 1. Categories (14 Mandatory Categories)
+    // 1. Categories (15 Mandatory Departments)
     this.categories = JSON.parse(JSON.stringify(CATEGORIES));
+
+    // Registration Mode:
+    // MODE_1: Automatic account activation after email OTP verification
+    // MODE_2: Manual owner approval after email verification (Default per business rules)
+    this.registrationMode = 'MODE_2';
 
     // 2. Users (Unified with roles: SUPER_ADMIN, ADMIN, SELLER, CUSTOMER)
     this.users = [
-      ...JSON.parse(JSON.stringify(USERS)),
-      // Maintain backwards compatibility with previous test users
+      ...JSON.parse(JSON.stringify(USERS)).map(u => ({
+        ...u,
+        accountStatus: 'APPROVED' // Seeded default accounts are approved
+      })),
+      // Backwards-compatible demo accounts
       ...JSON.parse(JSON.stringify(defaultUsers)).map(u => ({
         id: u._id,
         _id: u._id,
@@ -39,6 +49,7 @@ class ShopSphereStore {
         firstName: u.name.split(' ')[0] || 'User',
         lastName: u.name.split(' ')[1] || 'Customer',
         role: u.role === 'admin' ? 'SUPER_ADMIN' : 'CUSTOMER',
+        accountStatus: 'APPROVED',
         avatarUrl: u.avatar,
         isActive: true,
         isEmailVerified: true
@@ -53,7 +64,7 @@ class ShopSphereStore {
     this.customers = JSON.parse(JSON.stringify(CUSTOMERS));
     this.addresses = JSON.parse(JSON.stringify(ADDRESSES));
 
-    // 5. Products (ShopSphere products + legacy products mapped to 14 categories)
+    // 5. Products (ShopSphere products + legacy products mapped to 15 categories)
     const normalizedShopProducts = PRODUCTS.map(p => ({
       _id: p.id,
       id: p.id,
@@ -78,11 +89,10 @@ class ShopSphereStore {
       reviews: [],
       isFeatured: p.isFeatured,
       isNewArrival: false,
-      sellerName: this.stores.find(s => s.id === p.storeId)?.name || 'ShopSphere Direct',
+      sellerName: this.stores.find(s => s.id === p.storeId)?.name || 'Apex Innovations',
       createdAt: new Date()
     }));
 
-    // Backwards-compatible sample products
     const legacyProducts = sampleProducts.map(p => ({
       ...p,
       id: p._id,
@@ -102,7 +112,8 @@ class ShopSphereStore {
       userId: 'usr-customer-1',
       userName: 'Rahul Sharma',
       userEmail: 'customer@shopsphere.io',
-      status: o.orderStatus === 'CONFIRMED' ? 'Processing' : o.orderStatus,
+      status: 'Processing',
+      orderStatus: 'CONFIRMED',
       total: o.totalAmount,
       subtotal: o.subtotal,
       tax: o.taxAmount,
@@ -137,8 +148,9 @@ class ShopSphereStore {
   }
 
   // ============================================================================
-  // USER & AUTH METHODS
+  // USER & AUTHENTICATION METHODS (WITH OWNER APPROVAL WORKFLOW)
   // ============================================================================
+
   async findUserById(id) {
     const user = this.users.find(u => u.id === id || u._id === id);
     if (!user) return null;
@@ -159,6 +171,162 @@ class ShopSphereStore {
     return { ...safeUser, _id: user.id || user._id };
   }
 
+  /**
+   * Step 1: Customer initiates registration -> generates OTP and notifies owner
+   */
+  async requestCustomerRegistration({ name, email, password, phone, role = 'CUSTOMER', businessName }) {
+    const existing = await this.findUserByEmail(email);
+    if (existing) {
+      throw new Error('An account with this email address already exists');
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password || 'Password@123', salt);
+    const id = `usr_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+
+    const newUser = {
+      id,
+      _id: id,
+      email: email.toLowerCase(),
+      passwordHash: hashedPassword,
+      password: hashedPassword,
+      firstName: name.split(' ')[0] || 'Customer',
+      lastName: name.split(' ')[1] || '',
+      name: name.trim(),
+      phone: phone || '',
+      role: role.toUpperCase(),
+      accountStatus: 'EMAIL_VERIFICATION_PENDING',
+      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email)}`,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email)}`,
+      isEmailVerified: false,
+      isActive: false,
+      createdAt: new Date().toISOString()
+    };
+
+    this.users.push(newUser);
+
+    // Generate 6-Digit Email OTP (valid for 10 minutes)
+    const otpResult = await emailService.generateOtp(email);
+
+    // Notify Owner of new registration request
+    await emailService.notifyOwnerNewCustomer(newUser);
+
+    return {
+      userId: id,
+      email: newUser.email,
+      accountStatus: newUser.accountStatus,
+      message: 'Verification OTP sent to your email address.',
+      devOtp: otpResult.devOtp
+    };
+  }
+
+  /**
+   * Step 2: Customer verifies OTP
+   */
+  async verifyCustomerOtp(email, otp) {
+    const user = await this.findUserByEmail(email);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const verification = await emailService.verifyOtp(email, otp);
+    if (!verification.isValid) {
+      throw new Error(verification.reason);
+    }
+
+    const targetUser = this.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    targetUser.isEmailVerified = true;
+
+    if (this.registrationMode === 'MODE_1') {
+      // Automatic Activation Mode
+      targetUser.accountStatus = 'APPROVED';
+      targetUser.isActive = true;
+      await emailService.sendCustomerApprovalStatus(email, 'APPROVED');
+    } else {
+      // Manual Owner Approval Mode (Default)
+      targetUser.accountStatus = 'OWNER_APPROVAL_PENDING';
+      targetUser.isActive = false;
+      await emailService.notifyOwnerVerificationRequest(targetUser);
+    }
+
+    this.createNotification({
+      recipientId: 'usr-admin-1',
+      targetRole: 'SUPER_ADMIN',
+      title: 'Customer OTP Verified',
+      message: `${user.name} (${email}) has verified email OTP. Approval status: ${targetUser.accountStatus}`,
+      type: 'VERIFICATION_ALERT',
+      link: '/admin'
+    });
+
+    return {
+      userId: targetUser.id,
+      email: targetUser.email,
+      accountStatus: targetUser.accountStatus,
+      isApproved: targetUser.accountStatus === 'APPROVED'
+    };
+  }
+
+  /**
+   * Step 3: Owner manually approves customer account
+   */
+  async approveCustomer(userId) {
+    const user = this.users.find(u => u.id === userId || u._id === userId);
+    if (!user) throw new Error('Customer account not found');
+
+    user.accountStatus = 'APPROVED';
+    user.isActive = true;
+    user.updatedAt = new Date().toISOString();
+
+    // Create customer profile if absent
+    if (!this.customers.find(c => c.userId === user.id)) {
+      this.customers.push({
+        id: `cus_${Date.now()}`,
+        userId: user.id,
+        walletBalance: 0,
+        defaultAddressId: null
+      });
+    }
+
+    // Send confirmation email to customer
+    await emailService.sendCustomerApprovalStatus(user.email, 'APPROVED');
+
+    this.logAction('APPROVE_CUSTOMER', 'User', user.id, { email: user.email });
+    return user;
+  }
+
+  /**
+   * Step 4: Owner rejects customer account
+   */
+  async rejectCustomer(userId, reason) {
+    const user = this.users.find(u => u.id === userId || u._id === userId);
+    if (!user) throw new Error('Customer account not found');
+
+    user.accountStatus = 'REJECTED';
+    user.isActive = false;
+    user.rejectionReason = reason || 'Documentation failed verification';
+
+    await emailService.sendCustomerApprovalStatus(user.email, 'REJECTED', user.rejectionReason);
+
+    this.logAction('REJECT_CUSTOMER', 'User', user.id, { email: user.email, reason });
+    return user;
+  }
+
+  async getPendingCustomerApprovals() {
+    return this.users.filter(u => u.accountStatus === 'OWNER_APPROVAL_PENDING' || u.accountStatus === 'EMAIL_VERIFICATION_PENDING');
+  }
+
+  setRegistrationMode(mode) {
+    if (mode === 'MODE_1' || mode === 'MODE_2') {
+      this.registrationMode = mode;
+      return this.registrationMode;
+    }
+    throw new Error('Invalid mode. Must be MODE_1 or MODE_2');
+  }
+
+  getRegistrationMode() {
+    return this.registrationMode;
+  }
+
   async createUser(userData) {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(userData.password || 'Password@123', salt);
@@ -171,22 +339,22 @@ class ShopSphereStore {
       passwordHash: hashedPassword,
       password: hashedPassword,
       firstName: userData.firstName || userData.name?.split(' ')[0] || 'User',
-      lastName: userData.lastName || userData.name?.split(' ')[1] || 'Name',
+      lastName: userData.lastName || userData.name?.split(' ')[1] || 'Customer',
       name: userData.name || `${userData.firstName || 'User'} ${userData.lastName || ''}`.trim(),
       phone: userData.phone || '',
       role: userData.role ? userData.role.toUpperCase() : 'CUSTOMER',
+      accountStatus: 'APPROVED',
       avatarUrl: userData.avatarUrl || userData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userData.email)}`,
       avatar: userData.avatar || userData.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userData.email)}`,
       googleId: userData.googleId || null,
       isEmailVerified: true,
       isActive: true,
-      createdAt: new Date()
+      createdAt: new Date().toISOString()
     };
 
     this.users.push(newUser);
 
-    // If role is CUSTOMER, create customer profile
-    if (newUser.role === 'CUSTOMER' || newUser.role === 'USER') {
+    if (newUser.role === 'CUSTOMER') {
       this.customers.push({
         id: `cus_${Date.now()}`,
         userId: newUser.id,
@@ -195,14 +363,13 @@ class ShopSphereStore {
       });
     }
 
-    // If role is SELLER, create preliminary seller profile
     if (newUser.role === 'SELLER') {
       const sellerId = `sel_${Date.now()}`;
       this.sellers.push({
         id: sellerId,
         userId: newUser.id,
-        panNumber: userData.panNumber || 'PENDING',
-        gstin: userData.gstin || 'PENDING',
+        panNumber: userData.panNumber || 'PENDING_KYC',
+        gstin: userData.gstin || 'PENDING_KYC',
         businessName: userData.businessName || `${newUser.name}'s Store`,
         businessType: userData.businessType || 'Proprietorship',
         bankAccountNo: userData.bankAccountNo || '',
@@ -217,7 +384,7 @@ class ShopSphereStore {
         sellerId,
         name: userData.businessName || `${newUser.name}'s Store`,
         slug: (userData.businessName || `${newUser.name}-store`).toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        description: 'New merchant on ShopSphere Marketplace',
+        description: 'Authorized merchant storefront on ShopSphere',
         logoUrl: 'https://images.unsplash.com/photo-1560243563-062bfc001d68?auto=format&fit=crop&w=200&q=80',
         bannerUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80',
         supportEmail: newUser.email,
@@ -253,7 +420,7 @@ class ShopSphereStore {
   }
 
   // ============================================================================
-  // CATEGORIES (14 MANDATORY CATEGORIES + ADMIN CRUD)
+  // CATEGORIES (15 MANDATORY DEPARTMENTS + ADMIN CRUD)
   // ============================================================================
   async getCategories() {
     return this.categories.map(c => {
@@ -309,12 +476,11 @@ class ShopSphereStore {
   }
 
   // ============================================================================
-  // PRODUCTS METHODS (MULTI-VENDOR & COMPATIBILITY)
+  // PRODUCTS METHODS
   // ============================================================================
   async findProducts({ category, storeId, sellerId, search, minPrice, maxPrice, rating, inStock, status, sort, page = 1, limit = 50 }) {
     let result = [...this.products];
 
-    // Only active products for general storefront unless status is explicitly requested (e.g. by seller/admin)
     if (status) {
       result = result.filter(p => p.status === status);
     }
@@ -399,7 +565,6 @@ class ShopSphereStore {
     const product = this.products.find(p => p._id === id || p.id === id || p.slug === id);
     if (!product) return null;
 
-    // Attach store and category metadata
     const store = this.stores.find(s => s.id === product.storeId);
     const category = this.categories.find(c => c.id === product.categoryId);
 
@@ -421,7 +586,7 @@ class ShopSphereStore {
       _id: id,
       id,
       storeId: productData.storeId || 'sto-1',
-      sellerName: storeObj ? storeObj.name : 'Apex Electronics & Tech',
+      sellerName: storeObj ? storeObj.name : 'Apex Innovations',
       categoryId: categoryObj ? categoryObj.id : 'cat-1',
       category: categoryObj ? categoryObj.name : (productData.category || 'Electronics'),
       name: productData.name,
@@ -477,7 +642,7 @@ class ShopSphereStore {
 
     const newReview = {
       id: `rev_${Date.now()}`,
-      user: reviewData.userName || 'Verified Customer',
+      user: reviewData.userName || 'Verified Shopper',
       rating: parseInt(reviewData.rating, 10) || 5,
       comment: reviewData.comment || '',
       date: new Date().toISOString().split('T')[0]
@@ -529,13 +694,17 @@ class ShopSphereStore {
       kycStatus: 'PENDING',
       updatedAt: new Date()
     });
+
+    // Notify Owner via Email & Platform Notification
+    await emailService.notifyOwnerSellerKyc(seller);
+
     this.createNotification({
       recipientId: 'usr-admin-1',
       targetRole: 'SUPER_ADMIN',
       title: 'Seller KYC Submitted',
       message: `${seller.businessName} has updated KYC details for verification.`,
       type: 'KYC_SUBMITTED',
-      link: '/admin/sellers'
+      link: '/admin'
     });
     return seller;
   }
@@ -545,11 +714,12 @@ class ShopSphereStore {
     if (!seller) return null;
     seller.kycStatus = 'APPROVED';
     seller.kycRejectionReason = null;
+
     this.createNotification({
       recipientId: seller.userId,
       targetRole: 'SELLER',
       title: 'KYC Approved',
-      message: 'Congratulations! Your seller KYC has been verified. You can now list products.',
+      message: 'Congratulations! Your merchant KYC has been verified. You can now list products on the marketplace.',
       type: 'KYC_APPROVED',
       link: '/seller'
     });
@@ -560,7 +730,8 @@ class ShopSphereStore {
     const seller = this.sellers.find(s => s.id === sellerId);
     if (!seller) return null;
     seller.kycStatus = 'REJECTED';
-    seller.kycRejectionReason = reason || 'Documentation does not meet compliance standards';
+    seller.kycRejectionReason = reason || 'Documentation does not meet verification requirements';
+
     this.createNotification({
       recipientId: seller.userId,
       targetRole: 'SELLER',
@@ -611,7 +782,7 @@ class ShopSphereStore {
       customerId: customer.id,
       fullName: addressData.fullName,
       phone: addressData.phone,
-      addressLine1: addressData.addressLine1,
+      addressLine1: addressData.addressLine1 || addressData.street,
       addressLine2: addressData.addressLine2 || '',
       city: addressData.city,
       state: addressData.state,
@@ -718,18 +889,38 @@ class ShopSphereStore {
   }
 
   // ============================================================================
-  // MULTI-VENDOR ORDER ENGINE (PARENT ORDER + SELLER SUB-ORDERS)
+  // MULTI-VENDOR ORDER ENGINE (PARENT ORDER + SELLER SUB-ORDERS + COD + LIFECYCLE)
   // ============================================================================
   async createOrder(orderData) {
     const orderId = `ord_${Date.now()}`;
     const orderNumber = `SS-ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const items = orderData.items || [];
+    if (!items.length) {
+      throw new Error('Order must contain at least one item');
+    }
+
     const subtotal = parseFloat(orderData.subtotal) || items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const tax = parseFloat(orderData.tax) || Math.round(subtotal * 0.18);
     const shippingFee = parseFloat(orderData.shippingFee) || (subtotal > 2000 ? 0 : 99);
     const discount = parseFloat(orderData.discount) || 0;
     const total = subtotal + tax + shippingFee - discount;
+
+    const isCod = orderData.paymentMethod === 'COD';
+
+    // COD Safety Limit Check
+    if (isCod && total > 25000) {
+      throw new Error('Cash on Delivery is limited to orders up to ₹25,000. Please select an online payment method.');
+    }
+
+    // Verify stock availability across all items before reserving
+    for (const item of items) {
+      const prod = await this.findProductById(item.productId);
+      if (!prod) throw new Error(`Product ${item.name || item.productId} no longer exists`);
+      if (prod.stock < item.quantity) {
+        throw new Error(`Insufficient stock for ${prod.name}. Available: ${prod.stock}`);
+      }
+    }
 
     // Group items by store / seller for split order fulfillment
     const itemsByStore = new Map();
@@ -766,12 +957,12 @@ class ShopSphereStore {
         orderNumber,
         sellerId: seller ? seller.id : 'sel-1',
         storeId,
-        storeName: store ? store.name : 'Apex Electronics',
+        storeName: store ? store.name : 'Apex Innovations',
         sellerSubtotal,
         commissionAmount,
         commissionRate,
         netPayout,
-        status: 'PENDING',
+        status: isCod ? 'SELLER_ACCEPTANCE_PENDING' : 'SELLER_ACCEPTED',
         shippingCarrier: null,
         trackingNumber: null,
         items: storeItems,
@@ -794,7 +985,7 @@ class ShopSphereStore {
       }
     }
 
-    // Parent Order
+    // Parent Order Lifecycle Setup
     const newOrder = {
       _id: orderId,
       id: orderId,
@@ -802,33 +993,28 @@ class ShopSphereStore {
       user: orderData.userId || 'usr-customer-1',
       userId: orderData.userId || 'usr-customer-1',
       userEmail: orderData.userEmail || 'customer@shopsphere.io',
-      userName: orderData.userName || 'Rahul Sharma',
+      userName: orderData.userName || 'Valued Customer',
       items,
       sellerOrders: createdSellerOrders,
-      shippingAddress: orderData.shippingAddress || {
-        fullName: 'Rahul Sharma',
-        phone: '+91 98765 00004',
-        addressLine1: 'Indiranagar Phase 2',
-        city: 'Bengaluru',
-        state: 'Karnataka',
-        postalCode: '560038'
-      },
-      paymentMethod: orderData.paymentMethod || 'RAZORPAY',
-      paymentStatus: orderData.paymentStatus || 'PAID',
+      shippingAddress: orderData.shippingAddress,
+      paymentMethod: orderData.paymentMethod || (isCod ? 'COD' : 'RAZORPAY'),
+      paymentStatus: isCod ? 'COD_PENDING' : (orderData.paymentStatus || 'PAID'),
+      isCod,
       subtotal,
       tax,
       shippingFee,
       discount,
       total,
       currency: 'INR',
-      status: 'Processing',
-      orderStatus: 'CONFIRMED',
+      status: isCod ? 'Order Placed (COD)' : 'Processing',
+      orderStatus: isCod ? 'ORDER_PLACED' : 'CONFIRMED',
       trackingNumber: `SS-EXP-${Math.floor(100000 + Math.random() * 900000)}`,
       timeline: [
         { title: 'Order Placed', timestamp: new Date().toISOString(), completed: true },
-        { title: 'Payment Confirmed', timestamp: new Date().toISOString(), completed: true },
-        { title: 'Seller Processing', timestamp: new Date().toISOString(), completed: true },
+        { title: isCod ? 'Cash on Delivery Verified' : 'Payment Confirmed', timestamp: new Date().toISOString(), completed: true },
+        { title: 'Seller Processing & Packing', timestamp: isCod ? null : new Date().toISOString(), completed: !isCod },
         { title: 'Dispatched & Shipped', timestamp: null, completed: false },
+        { title: 'Out for Delivery', timestamp: null, completed: false },
         { title: 'Delivered', timestamp: null, completed: false }
       ],
       createdAt: new Date().toISOString()
@@ -836,7 +1022,7 @@ class ShopSphereStore {
 
     this.orders.unshift(newOrder);
 
-    // Update Product Stock Levels
+    // Atomically decrement Product Stock Levels
     for (const item of items) {
       const product = await this.findProductById(item.productId);
       if (product) {
@@ -849,7 +1035,14 @@ class ShopSphereStore {
       await this.clearCart(orderData.userId);
     }
 
-    // Notify Customer and Super Admin
+    // Send Real-time Owner Gmail Notification
+    if (isCod) {
+      await emailService.notifyOwnerCodOrder(newOrder);
+    } else {
+      await emailService.notifyOwnerNewOrder(newOrder);
+    }
+
+    // Notify Customer and Super Admin in-app
     this.createNotification({
       recipientId: newOrder.userId,
       targetRole: 'CUSTOMER',
@@ -896,16 +1089,19 @@ class ShopSphereStore {
     if (tracking.trackingNumber) so.trackingNumber = tracking.trackingNumber;
     so.updatedAt = new Date().toISOString();
 
-    // Check parent order status
     const parentOrder = this.orders.find(o => o.id === so.orderId || o._id === so.orderId);
     if (parentOrder) {
       const allSubOrders = this.sellerOrders.filter(s => s.orderId === parentOrder.id);
       const allDelivered = allSubOrders.every(s => s.status === 'DELIVERED');
+      const allPacked = allSubOrders.every(s => s.status === 'PACKED' || s.status === 'SHIPPED' || s.status === 'DELIVERED');
       const anyShipped = allSubOrders.some(s => s.status === 'SHIPPED');
 
       if (allDelivered) {
         parentOrder.status = 'Delivered';
         parentOrder.orderStatus = 'DELIVERED';
+        if (parentOrder.isCod) {
+          parentOrder.paymentStatus = 'PAID';
+        }
         const step = parentOrder.timeline?.find(t => t.title === 'Delivered');
         if (step) { step.completed = true; step.timestamp = new Date().toISOString(); }
       } else if (anyShipped) {
@@ -913,10 +1109,57 @@ class ShopSphereStore {
         parentOrder.orderStatus = 'SHIPPED';
         const step = parentOrder.timeline?.find(t => t.title === 'Dispatched & Shipped');
         if (step) { step.completed = true; step.timestamp = new Date().toISOString(); }
+      } else if (allPacked) {
+        parentOrder.status = 'Packed';
+        parentOrder.orderStatus = 'PACKED';
+        const step = parentOrder.timeline?.find(t => t.title === 'Seller Processing & Packing');
+        if (step) { step.completed = true; step.timestamp = new Date().toISOString(); }
       }
     }
 
     return so;
+  }
+
+  /**
+   * Cash on Delivery Collection Confirmation
+   */
+  async confirmCodCollection(orderId) {
+    const order = await this.findOrderById(orderId);
+    if (!order) throw new Error('Order not found');
+    if (!order.isCod) throw new Error('Order is not a Cash on Delivery order');
+
+    order.paymentStatus = 'PAID';
+    order.orderStatus = 'DELIVERED';
+    order.status = 'Delivered';
+    order.codCollectedAt = new Date().toISOString();
+
+    this.createNotification({
+      recipientId: order.userId,
+      targetRole: 'CUSTOMER',
+      title: 'COD Payment Collected',
+      message: `Cash of ₹${order.total} has been collected and confirmed by our logistics partner for order #${order.orderNumber}.`,
+      type: 'PAYMENT_SUCCESS',
+      link: '/orders'
+    });
+
+    return order;
+  }
+
+  // Dynamic UPI QR Code payload generator
+  generateUpiQrCode(orderNumber, amount) {
+    const upiId = process.env.OWNER_UPI_ID || 'shopsphere.owner@okhdfcbank';
+    const merchantName = 'ShopSphere Marketplace';
+    const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(merchantName)}&am=${amount.toFixed(2)}&cu=INR&tr=${encodeURIComponent(orderNumber)}&tn=${encodeURIComponent(`Payment for Order ${orderNumber}`)}`;
+
+    return {
+      upiUrl,
+      upiId,
+      merchantName,
+      amount,
+      currency: 'INR',
+      orderNumber,
+      qrSvgUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUrl)}`
+    };
   }
 
   // ============================================================================
@@ -953,28 +1196,34 @@ class ShopSphereStore {
       throw new Error(`Requested amount ₹${amount} exceeds available settlement balance of ₹${earnings.availableBalance}`);
     }
 
+    const seller = this.sellers.find(s => s.id === sellerId);
+
     const payout = {
       id: `payout_${Date.now()}`,
       sellerId,
       amount: parseFloat(amount),
       currency: 'INR',
-      status: 'PROCESSING',
+      status: 'TRANSFERRED',
       razorpayPayoutId: `pout_${Date.now()}`,
       bankReference: `UTR-IN-${Math.floor(10000000 + Math.random() * 90000000)}`,
       requestedAt: new Date().toISOString(),
       processedAt: new Date().toISOString()
     };
 
-    payout.status = 'TRANSFERRED';
     this.payouts.unshift(payout);
 
+    // Notify Owner of settlement withdrawal
+    if (seller) {
+      await emailService.notifyOwnerSettlementRequest(seller, payout);
+    }
+
     this.createNotification({
-      recipientId: this.sellers.find(s => s.id === sellerId)?.userId,
+      recipientId: seller?.userId,
       targetRole: 'SELLER',
       title: 'Settlement Payout Processed',
-      message: `Your payout of ₹${amount.toLocaleString('en-IN')} has been transferred to your registered bank account.`,
+      message: `Your payout of ₹${amount.toLocaleString('en-IN')} has been transferred to your registered bank account via Razorpay Route.`,
       type: 'PAYOUT_PROCESSED',
-      link: '/seller/earnings'
+      link: '/seller'
     });
 
     return payout;
@@ -1001,13 +1250,17 @@ class ShopSphereStore {
 
     this.refunds.unshift(refund);
     order.paymentStatus = 'REFUNDED';
-    order.orderStatus = 'CANCELLED';
+    order.orderStatus = 'REFUNDED';
+    order.status = 'Refunded';
+
+    // Notify Owner via Email
+    await emailService.notifyOwnerRefundRequested(order, refund);
 
     this.createNotification({
       recipientId: order.userId || order.user,
       targetRole: 'CUSTOMER',
       title: 'Refund Approved',
-      message: `Your refund request for order ${order.orderNumber} (₹${refundAmount}) has been approved and processed.`,
+      message: `Your refund request for order ${order.orderNumber} (₹${refundAmount}) has been approved and credited.`,
       type: 'REFUND_PROCESSED',
       link: '/orders'
     });
@@ -1020,7 +1273,7 @@ class ShopSphereStore {
   }
 
   // ============================================================================
-  // SUPER ADMIN METRICS & ANALYTICS
+  // SUPER ADMIN OWNER DASHBOARD METRICS
   // ============================================================================
   async getSuperAdminAnalytics() {
     const totalGMV = this.orders.reduce((sum, o) => sum + (o.total || 0), 0);
@@ -1030,9 +1283,11 @@ class ShopSphereStore {
     const totalSellers = this.sellers.length;
     const totalProducts = this.products.length;
 
-    const pendingOrders = this.orders.filter(o => o.orderStatus === 'PLACED' || o.orderStatus === 'CONFIRMED' || o.status === 'Processing').length;
-    const successfulPayments = this.orders.filter(o => o.paymentStatus === 'PAID' || o.paymentStatus === 'Paid').length;
-    const failedPayments = 0;
+    const pendingOrders = this.orders.filter(o => o.orderStatus === 'ORDER_PLACED' || o.orderStatus === 'CONFIRMED' || o.status === 'Processing').length;
+    const successfulPayments = this.orders.filter(o => o.paymentStatus === 'PAID').length;
+    const codOrdersCount = this.orders.filter(o => o.isCod).length;
+    const pendingCustomerApprovals = this.users.filter(u => u.accountStatus === 'OWNER_APPROVAL_PENDING').length;
+
     const totalRefunds = this.refunds.reduce((sum, r) => sum + r.amount, 0);
     const totalSellerPayouts = this.payouts.reduce((sum, p) => sum + p.amount, 0);
 
@@ -1045,7 +1300,11 @@ class ShopSphereStore {
       totalProducts,
       pendingOrders,
       successfulPayments,
-      failedPayments,
+      failedPayments: 0,
+      codOrdersCount,
+      pendingApprovals: pendingCustomerApprovals,
+      registrationMode: this.registrationMode,
+      ownerEmail: emailService.ownerEmail,
       refundCount: this.refunds.length,
       totalRefunds: parseFloat(totalRefunds.toFixed(2)),
       totalSellerSettlements: parseFloat(totalSellerPayouts.toFixed(2)),

@@ -290,3 +290,34 @@ exports.requestPayout = async (req, res, next) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
+// @desc    Get Public Storefront and its products by store slug
+// @route   GET /api/seller/store/:slug
+// @access  Public
+exports.getPublicStoreBySlug = async (req, res, next) => {
+  try {
+    const { slug } = req.params;
+    const storeObj = store.stores.find(s => s.slug === slug || s.id === slug);
+    if (!storeObj) {
+      return res.status(404).json({ success: false, message: 'Storefront not found' });
+    }
+    const seller = store.sellers.find(sel => sel.id === storeObj.sellerId);
+    const products = store.products.filter(p => p.sellerId === storeObj.sellerId);
+    res.json({
+      success: true,
+      data: {
+        store: storeObj,
+        seller: seller ? {
+          businessName: seller.businessName,
+          kycStatus: seller.kycStatus,
+          businessType: seller.businessType
+        } : null,
+        products
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+

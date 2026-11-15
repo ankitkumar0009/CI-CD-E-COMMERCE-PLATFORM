@@ -11,9 +11,13 @@ const {
   getSellerOrders,
   updateOrderStatus,
   getSellerEarnings,
-  requestPayout
+  requestPayout,
+  getPublicStoreBySlug
 } = require('../controllers/sellerController');
 const { protect } = require('../middleware/authMiddleware');
+
+// Public storefront view
+router.get('/store/:slug', getPublicStoreBySlug);
 
 router.use(protect);
 
@@ -33,3 +37,4 @@ router.get('/earnings', getSellerEarnings);
 router.post('/payouts', requestPayout);
 
 module.exports = router;
+

@@ -20,6 +20,14 @@ import { WishlistPage } from './pages/WishlistPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { SellerDashboardPage } from './pages/seller/SellerDashboardPage';
 import { DevOpsDashboardPage } from './pages/DevOpsDashboardPage';
+import { CategoriesPage } from './pages/CategoriesPage';
+import { AboutPage } from './pages/AboutPage';
+import { ContactPage } from './pages/ContactPage';
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
+import { TermsPage } from './pages/TermsPage';
+import { RefundPolicyPage } from './pages/RefundPolicyPage';
+import { ShippingPolicyPage } from './pages/ShippingPolicyPage';
+import { StorePage } from './pages/StorePage';
 
 export function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -39,7 +47,9 @@ export function App() {
                   <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/shop" element={<ShopPage />} />
+                    <Route path="/categories" element={<CategoriesPage />} />
                     <Route path="/product/:id" element={<ProductDetailPage />} />
+                    <Route path="/store/:slug" element={<StorePage />} />
                     <Route path="/checkout" element={<CheckoutPage />} />
                     <Route path="/orders" element={<OrdersPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
@@ -47,6 +57,12 @@ export function App() {
                     <Route path="/admin" element={<AdminDashboardPage />} />
                     <Route path="/seller" element={<SellerDashboardPage />} />
                     <Route path="/devops" element={<DevOpsDashboardPage />} />
+                    <Route path="/about" element={<AboutPage />} />
+                    <Route path="/contact" element={<ContactPage />} />
+                    <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                    <Route path="/terms" element={<TermsPage />} />
+                    <Route path="/refund-policy" element={<RefundPolicyPage />} />
+                    <Route path="/shipping-policy" element={<ShippingPolicyPage />} />
                   </Routes>
                 </main>
 

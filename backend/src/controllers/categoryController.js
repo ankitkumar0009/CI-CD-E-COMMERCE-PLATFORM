@@ -101,3 +101,4 @@ exports.deleteCategory = async (req, res, next) => {
     next(error);
   }
 };
+

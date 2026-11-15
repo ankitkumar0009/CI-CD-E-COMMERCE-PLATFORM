@@ -182,3 +182,25 @@ exports.requestRefund = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Generate Dynamic UPI QR Code for Order / Cart
+// @route   POST /api/payments/upi-qr
+// @access  Private
+exports.getUpiQrCode = async (req, res, next) => {
+  try {
+    const { amount, orderNumber } = req.body;
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Valid payment amount is required' });
+    }
+    const orderNo = orderNumber || `SS-UPI-${Date.now().toString().slice(-6)}`;
+    const qrData = store.generateUpiQrCode(orderNo, parseFloat(amount));
+    res.json({
+      success: true,
+      data: qrData
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+

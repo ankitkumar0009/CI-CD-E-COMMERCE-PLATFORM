@@ -56,7 +56,8 @@ async function runSmokeTests() {
     { name: 'Kubernetes Readiness Probe (/health/ready)', path: '/health/ready', expectedStatus: 200 },
     { name: 'Prometheus Telemetry Endpoint (/metrics)', path: '/metrics', expectedStatus: 200 },
     { name: 'Product Catalog API (/api/products)', path: '/api/products', expectedStatus: 200 },
-    { name: '14 Marketplace Categories API (/api/categories)', path: '/api/categories', expectedStatus: 200 },
+    { name: '15 Marketplace Categories API (/api/categories)', path: '/api/categories', expectedStatus: 200 },
+    { name: 'Public Storefront API (/api/seller/store/apex-electronics)', path: '/api/seller/store/apex-electronics', expectedStatus: 200 },
     { name: 'DevOps System Telemetry (/api/devops/status)', path: '/api/devops/status', expectedStatus: 200 },
     { name: 'CI/CD Pipeline Telemetry (/api/devops/pipeline-history)', path: '/api/devops/pipeline-history', expectedStatus: 200 }
   ];

@@ -1,6 +1,7 @@
 // ==============================================================================
 // SHOPSPHERE - Super Admin Dashboard Controller
-// GMV, Commissions, Seller KYC Approvals, Refunds, Settlements & User Controls
+// GMV, Commissions, Customer Approval Workflow (MODE 1 / MODE 2),
+// Seller KYC Approvals, COD Cash Collections, Refunds, Settlements & User Controls
 // ==============================================================================
 
 const store = require('../models/store');
@@ -17,6 +18,88 @@ exports.getAdminAnalytics = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+// @desc    Get all pending customer account verification approvals
+// @route   GET /api/admin/pending-approvals
+// @access  Private/Admin
+exports.getPendingCustomerApprovals = async (req, res, next) => {
+  try {
+    const pending = await store.getPendingCustomerApprovals();
+    res.json({
+      success: true,
+      count: pending.length,
+      data: pending
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Approve customer registration request (Owner Action)
+// @route   PUT /api/admin/customers/:id/approve
+// @access  Private/Admin
+exports.approveCustomerAccount = async (req, res, next) => {
+  try {
+    const approved = await store.approveCustomer(req.params.id);
+    res.json({
+      success: true,
+      message: `Customer ${approved.name} has been approved and activated. Notification sent.`,
+      data: approved
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Reject customer registration request (Owner Action)
+// @route   PUT /api/admin/customers/:id/reject
+// @access  Private/Admin
+exports.rejectCustomerAccount = async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+    const rejected = await store.rejectCustomer(req.params.id, reason);
+    res.json({
+      success: true,
+      message: `Customer ${rejected.name} registration was rejected with feedback.`,
+      data: rejected
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Set Customer Registration Mode (MODE 1 vs MODE 2)
+// @route   PUT /api/admin/settings/registration-mode
+// @access  Private/Admin
+exports.setRegistrationMode = async (req, res, next) => {
+  try {
+    const { mode } = req.body;
+    const currentMode = store.setRegistrationMode(mode);
+    res.json({
+      success: true,
+      message: `Registration mode set to ${currentMode}`,
+      data: { registrationMode: currentMode }
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Confirm Cash on Delivery Collection at Doorstep
+// @route   PUT /api/admin/orders/:id/cod-collected
+// @access  Private/Admin
+exports.confirmCodCollection = async (req, res, next) => {
+  try {
+    const updatedOrder = await store.confirmCodCollection(req.params.id);
+    res.json({
+      success: true,
+      message: `Cash on Delivery for order #${updatedOrder.orderNumber} confirmed as COLLECTED.`,
+      data: updatedOrder
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 

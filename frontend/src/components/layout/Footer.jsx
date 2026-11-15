@@ -45,17 +45,17 @@ export const Footer = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 mb-10">
           {/* Brand & Summary */}
-          <div className="space-y-4">
+          <div className="space-y-4 lg:col-span-1">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md">
                 <Layers className="w-4 h-4" />
               </div>
-              <span className="text-lg font-bold text-white tracking-tight">CloudOps Platform</span>
+              <span className="text-lg font-bold text-white tracking-tight">ShopSphere</span>
             </div>
             <p className="text-xs leading-relaxed text-slate-400">
-              Enterprise-grade E-Commerce architecture engineered with Docker multi-stage builds, automated GitHub Actions CI/CD, AWS EKS orchestrations, and real-time Prometheus & Grafana observability.
+              India's premier cloud-native multi-vendor marketplace. Engineered with Docker multi-stage builds, AWS EKS microservices, and automated Razorpay Route split merchant settlements.
             </p>
             <div className="flex items-center gap-3 text-slate-400">
               <div className="p-1.5 rounded-md bg-slate-800 text-cyan-400" title="AWS Cloud Infrastructure">
@@ -73,56 +73,71 @@ export const Footer = () => {
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Marketplace Directory */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-200 mb-4">E-Commerce Store</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-200 mb-4">Shop & Explore</h4>
             <ul className="space-y-2 text-xs">
               <li><Link to="/shop" className="hover:text-white transition-colors">All Products</Link></li>
-              <li><Link to="/shop?category=Laptops+%26+Computers" className="hover:text-white transition-colors">Laptops & Workstations</Link></li>
-              <li><Link to="/shop?category=Audio+%26+Headphones" className="hover:text-white transition-colors">Audio & Headphones</Link></li>
-              <li><Link to="/shop?category=Smart+Devices+%26+Wearables" className="hover:text-white transition-colors">Wearables & Watches</Link></li>
-              <li><Link to="/orders" className="hover:text-white transition-colors">Track Active Orders</Link></li>
+              <li><Link to="/categories" className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">All 15 Departments &rarr;</Link></li>
+              <li><Link to="/orders" className="hover:text-white transition-colors">Track Orders</Link></li>
+              <li><Link to="/wishlist" className="hover:text-white transition-colors">Saved Wishlist</Link></li>
+              <li><Link to="/profile" className="hover:text-white transition-colors">My Customer Account</Link></li>
             </ul>
           </div>
 
-          {/* DevOps & Cloud */}
+          {/* Merchant & Admin Hub */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-200 mb-4">Seller & Governance</h4>
+            <ul className="space-y-2 text-xs">
+              <li><Link to="/seller" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">Seller Portal & KYC</Link></li>
+              <li><Link to="/admin" className="text-amber-400 hover:text-amber-300 font-medium transition-colors">Super Admin Dashboard</Link></li>
+              <li><Link to="/store/apex-electronics" className="hover:text-white transition-colors">Apex Electronics Storefront</Link></li>
+              <li><Link to="/store/zenith-lifestyle" className="hover:text-white transition-colors">Zenith Lifestyle Storefront</Link></li>
+              <li><Link to="/contact" className="hover:text-white transition-colors">Merchant Helpdesk</Link></li>
+            </ul>
+          </div>
+
+          {/* Legal & Policies */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-200 mb-4">Customer Trust</h4>
+            <ul className="space-y-2 text-xs">
+              <li><Link to="/about" className="hover:text-white transition-colors">About ShopSphere</Link></li>
+              <li><Link to="/contact" className="hover:text-white transition-colors">Contact Support</Link></li>
+              <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link></li>
+              <li><Link to="/refund-policy" className="hover:text-white transition-colors">Refund & Return Policy</Link></li>
+              <li><Link to="/shipping-policy" className="hover:text-white transition-colors">Shipping & Delivery Policy</Link></li>
+            </ul>
+          </div>
+
+          {/* DevOps & Reliability */}
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-200 mb-4">Cloud & DevOps</h4>
-            <ul className="space-y-2 text-xs">
-              <li><Link to="/devops" className="text-emerald-400 hover:text-emerald-300 font-medium">DevOps Telemetry Dashboard</Link></li>
-              <li><a href="/metrics" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Prometheus /metrics Endpoint</a></li>
-              <li><a href="/health" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">L7 Health Probe (/health)</a></li>
+            <ul className="space-y-2 text-xs mb-3">
+              <li><Link to="/devops" className="text-emerald-400 hover:text-emerald-300 font-medium">DevOps Telemetry Console</Link></li>
+              <li><a href="/metrics" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Prometheus Metrics (/metrics)</a></li>
+              <li><a href="/health" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">API Health Probe (/health)</a></li>
               <li><a href="/health/ready" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">K8s Readiness Probe</a></li>
-              <li><a href="/health/live" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">K8s Liveness Probe</a></li>
             </ul>
-          </div>
-
-          {/* Security & Reliability */}
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-200 mb-4">SRE & Security</h4>
-            <p className="text-xs text-slate-400 leading-relaxed mb-3">
-              Protected by AWS IAM least privilege roles, encrypted secrets via AWS Secrets Manager, and rate-limited REST endpoints.
-            </p>
-            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono space-y-1">
+            <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px] font-mono space-y-1">
               <div className="text-cyan-400 font-semibold">&gt; kubectl get pods -n ecommerce-prod</div>
               <div className="text-emerald-400">&#x2714; 6/6 pods Running</div>
-              <div className="text-slate-400">&gt; ALB Status: Active (HTTP 200)</div>
             </div>
           </div>
         </div>
 
         <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-          <p>&copy; {new Date().getFullYear()} CloudOps E-Commerce Platform. Built for DevOps & Cloud Architecture Demonstration.</p>
+          <p>&copy; {new Date().getFullYear()} ShopSphere Technologies Pvt Ltd. All-in-One Multi-Vendor E-Commerce Platform.</p>
           <div className="flex items-center gap-4 text-slate-400">
+            <span>AWS EKS</span>
+            <span>&bull;</span>
+            <span>PostgreSQL RDS</span>
+            <span>&bull;</span>
+            <span>Razorpay Route</span>
+            <span>&bull;</span>
             <span>Docker</span>
             <span>&bull;</span>
             <span>Kubernetes</span>
-            <span>&bull;</span>
-            <span>Terraform</span>
-            <span>&bull;</span>
-            <span>AWS EKS</span>
-            <span>&bull;</span>
-            <span>Prometheus</span>
           </div>
         </div>
       </div>

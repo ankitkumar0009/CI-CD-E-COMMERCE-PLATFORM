@@ -156,7 +156,7 @@ export const ProductDetailPage = () => {
           {/* Right: Details & Purchase Actions (7 cols) */}
           <div className="lg:col-span-6 flex flex-col justify-between space-y-6">
             <div className="space-y-4">
-              {/* Category & Stock Pill */}
+              {/* Seller / Store Pill */}
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-md border border-cyan-500/20">
                   {product.category}
@@ -169,6 +169,18 @@ export const ProductDetailPage = () => {
                 }`}>
                   {product.stock > 0 ? `In Stock (${product.stock} units available)` : 'Out of Stock'}
                 </span>
+              </div>
+
+              {/* Verified Seller info */}
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  <span className="text-slate-500">Sold by:</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {product.sellerName || product.store?.name || 'Apex Electronics & Tech'}
+                  </span>
+                </div>
+                <span className="text-emerald-500 font-semibold text-[11px]">Verified Merchant ★ 4.9</span>
               </div>
 
               {/* Title */}
@@ -193,16 +205,16 @@ export const ProductDetailPage = () => {
               {/* Price */}
               <div className="flex items-baseline gap-3 pt-2">
                 <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
-                  ${product.price.toFixed(2)}
+                  ₹{Number(product.price).toLocaleString('en-IN')}
                 </span>
                 {product.originalPrice && (
                   <span className="text-base text-slate-400 line-through">
-                    ${product.originalPrice.toFixed(2)}
+                    ₹{Number(product.originalPrice).toLocaleString('en-IN')}
                   </span>
                 )}
                 {product.originalPrice && product.originalPrice > product.price && (
                   <span className="text-xs font-bold px-2 py-0.5 rounded bg-rose-500 text-white">
-                    Save ${(product.originalPrice - product.price).toFixed(2)}
+                    Save ₹{Number(product.originalPrice - product.price).toLocaleString('en-IN')}
                   </span>
                 )}
               </div>

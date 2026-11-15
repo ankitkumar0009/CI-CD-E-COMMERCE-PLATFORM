@@ -46,6 +46,27 @@ export const api = {
       body: JSON.stringify(userData)
     }).then(handleResponse),
 
+  registerRequest: (userData) =>
+    fetch(`${BASE_URL}/auth/register-request`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(userData)
+    }).then(handleResponse),
+
+  verifyOtp: (payload) =>
+    fetch(`${BASE_URL}/auth/verify-otp`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    }).then(handleResponse),
+
+  resendOtp: (payload) =>
+    fetch(`${BASE_URL}/auth/resend-otp`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    }).then(handleResponse),
+
   googleLogin: (googleData) =>
     fetch(`${BASE_URL}/auth/google`, {
       method: 'POST',
@@ -75,6 +96,18 @@ export const api = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(addressData)
+    }).then(handleResponse),
+
+  deleteAddress: (id) =>
+    fetch(`${BASE_URL}/auth/addresses/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    }).then(handleResponse),
+
+  setDefaultAddress: (id) =>
+    fetch(`${BASE_URL}/auth/addresses/${id}/default`, {
+      method: 'PUT',
+      headers: getHeaders()
     }).then(handleResponse),
 
   // --- 14 CATEGORIES (PUBLIC & ADMIN CRUD) ---
@@ -218,6 +251,13 @@ export const api = {
       body: JSON.stringify({ orderId, reason, amount })
     }).then(handleResponse),
 
+  getUpiQrCode: (amount, orderNumber) =>
+    fetch(`${BASE_URL}/payments/upi-qr`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ amount, orderNumber })
+    }).then(handleResponse),
+
   // --- ORDERS ---
   createOrder: (orderData) =>
     fetch(`${BASE_URL}/orders`, {
@@ -315,6 +355,11 @@ export const api = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ amount })
+    }).then(handleResponse),
+
+  getPublicStore: (slug) =>
+    fetch(`${BASE_URL}/seller/store/${slug}`, {
+      headers: getHeaders()
     }).then(handleResponse),
 
   // --- SUPER ADMIN DASHBOARD ---

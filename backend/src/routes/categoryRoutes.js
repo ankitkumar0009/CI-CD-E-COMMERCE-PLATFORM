@@ -16,3 +16,4 @@ router.put('/:id', protect, adminOnly, updateCategory);
 router.delete('/:id', protect, adminOnly, deleteCategory);
 
 module.exports = router;
+

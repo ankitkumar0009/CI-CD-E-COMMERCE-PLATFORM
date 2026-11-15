@@ -1,13 +1,14 @@
 // ==============================================================================
-// SHOPSPHERE - Authentication & User Profile Controller
-// Supports Email/Password, Google OAuth 2.0, Roles (Customer/Seller/Admin),
-// and Multiple Delivery Addresses
+// SHOPSPHERE - Authentication & Customer Verification Controller
+// Supports Email/Password, Email OTP, Google OAuth 2.0,
+// Owner Approval Workflow (MODE 1 / MODE 2), and Multi-Address Management
 // ==============================================================================
 
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const config = require('../config');
 const store = require('../models/store');
+const emailService = require('../services/emailService');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, config.jwtSecret, {
@@ -15,6 +16,111 @@ const generateToken = (id) => {
   });
 };
 
+/**
+ * Step 1: Initiate Customer Registration -> Send OTP & Alert Owner
+ * @route POST /api/auth/register-request
+ */
+const requestRegistration = async (req, res, next) => {
+  try {
+    const { name, email, password, phone, role, businessName } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, email address, and password are required'
+      });
+    }
+
+    const result = await store.requestCustomerRegistration({
+      name,
+      email,
+      password,
+      phone,
+      role: role || 'CUSTOMER',
+      businessName
+    });
+
+    res.status(201).json({
+      success: true,
+      message: result.message,
+      data: {
+        userId: result.userId,
+        email: result.email,
+        accountStatus: result.accountStatus,
+        devOtp: result.devOtp // Visible in response for easy local testing
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Step 2: Verify 6-digit OTP from Email
+ * @route POST /api/auth/verify-otp
+ */
+const verifyOtp = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email address and 6-digit OTP are required'
+      });
+    }
+
+    const result = await store.verifyCustomerOtp(email, otp);
+
+    let token = null;
+    if (result.isApproved) {
+      token = generateToken(result.userId);
+    }
+
+    res.json({
+      success: true,
+      message: result.isApproved
+        ? 'Account email verified and approved! You may now sign in.'
+        : 'Email verified successfully. Your account is now pending owner approval. You will be notified once activated.',
+      data: {
+        ...result,
+        token
+      }
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+/**
+ * Resend Verification OTP
+ * @route POST /api/auth/resend-otp
+ */
+const resendOtp = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email address is required' });
+    }
+
+    const otpResult = await emailService.generateOtp(email);
+    res.json({
+      success: true,
+      message: 'A new 6-digit verification code has been dispatched to your email.',
+      data: { devOtp: otpResult.devOtp }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Standard Registration (Instant creation for automated tests and backwards compatibility)
+ * @route POST /api/auth/register
+ */
 const register = async (req, res, next) => {
   try {
     const { name, email, password, role, businessName, phone } = req.body;
@@ -58,6 +164,10 @@ const register = async (req, res, next) => {
   }
 };
 
+/**
+ * Login with Account Verification and Status Gatekeeping
+ * @route POST /api/auth/login
+ */
 const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -85,6 +195,40 @@ const login = async (req, res, next) => {
       });
     }
 
+    // Status Gatekeeping
+    const status = userWithPassword.accountStatus || 'APPROVED';
+    if (status === 'EMAIL_VERIFICATION_PENDING') {
+      return res.status(403).json({
+        success: false,
+        accountStatus: status,
+        message: 'Email verification pending. Please enter the OTP sent to your email.'
+      });
+    }
+
+    if (status === 'OWNER_APPROVAL_PENDING') {
+      return res.status(403).json({
+        success: false,
+        accountStatus: status,
+        message: 'Your account has verified its email and is currently awaiting platform owner approval.'
+      });
+    }
+
+    if (status === 'REJECTED') {
+      return res.status(403).json({
+        success: false,
+        accountStatus: status,
+        message: `Your account registration was not approved: ${userWithPassword.rejectionReason || 'Contact platform support'}`
+      });
+    }
+
+    if (status === 'SUSPENDED') {
+      return res.status(403).json({
+        success: false,
+        accountStatus: status,
+        message: 'This account has been suspended by the platform administrator.'
+      });
+    }
+
     const { password: _, passwordHash: __, ...user } = userWithPassword;
     const token = generateToken(user._id || user.id);
 
@@ -101,7 +245,10 @@ const login = async (req, res, next) => {
   }
 };
 
-// Google OAuth 2.0 Login / Register
+/**
+ * Google OAuth 2.0 Login / Registration
+ * @route POST /api/auth/google
+ */
 const googleLogin = async (req, res, next) => {
   try {
     const { googleId, email, name, avatarUrl } = req.body;
@@ -119,6 +266,9 @@ const googleLogin = async (req, res, next) => {
         avatarUrl,
         googleId: googleId || `goog_${Date.now()}`
       });
+
+      // Notify Owner of Google registration
+      await emailService.notifyOwnerNewCustomer(user);
     }
 
     const token = generateToken(user._id || user.id);
@@ -195,6 +345,9 @@ const addCustomerAddress = async (req, res, next) => {
 };
 
 module.exports = {
+  requestRegistration,
+  verifyOtp,
+  resendOtp,
   register,
   login,
   googleLogin,

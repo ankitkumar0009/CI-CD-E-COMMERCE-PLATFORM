@@ -309,3 +309,4 @@ CREATE INDEX "idx_seller_orders_order" ON "seller_orders"("order_id");
 CREATE INDEX "idx_payments_order" ON "payments"("order_id");
 CREATE INDEX "idx_notifications_recipient" ON "notifications"("recipient_id", "is_read");
 CREATE INDEX "idx_audit_logs_action" ON "audit_logs"("action");
+

@@ -61,22 +61,23 @@ export const Navbar = ({ onOpenAuth }) => {
         }
       })
       .catch(() => {
-        // Fallback default 14 categories list
+        // Fallback default 15 categories list
         setCategories([
           { id: 'cat-1', name: 'Electronics', slug: 'electronics' },
-          { id: 'cat-2', name: 'Fashion & Clothing', slug: 'fashion-clothing' },
-          { id: 'cat-3', name: 'Mobile Phones', slug: 'mobile-phones' },
-          { id: 'cat-4', name: 'Laptops & Computers', slug: 'laptops-computers' },
-          { id: 'cat-5', name: 'Shoes & Footwear', slug: 'shoes-footwear' },
-          { id: 'cat-6', name: 'Grocery & Daily Essentials', slug: 'grocery-daily-essentials' },
-          { id: 'cat-7', name: 'Home & Kitchen', slug: 'home-kitchen' },
-          { id: 'cat-8', name: 'Furniture', slug: 'furniture' },
-          { id: 'cat-9', name: 'Beauty & Personal Care', slug: 'beauty-personal-care' },
-          { id: 'cat-10', name: 'Sports & Fitness', slug: 'sports-fitness' },
-          { id: 'cat-11', name: 'Books & Stationery', slug: 'books-stationery' },
-          { id: 'cat-12', name: 'Toys & Baby Products', slug: 'toys-baby-products' },
-          { id: 'cat-13', name: 'Watches & Accessories', slug: 'watches-accessories' },
-          { id: 'cat-14', name: 'Automotive Accessories', slug: 'automotive-accessories' }
+          { id: 'cat-2', name: 'Mobile Phones', slug: 'mobile-phones' },
+          { id: 'cat-3', name: 'Laptops', slug: 'laptops' },
+          { id: 'cat-4', name: 'Fashion', slug: 'fashion' },
+          { id: 'cat-5', name: 'Clothing', slug: 'clothing' },
+          { id: 'cat-6', name: 'Shoes', slug: 'shoes' },
+          { id: 'cat-7', name: 'Grocery', slug: 'grocery' },
+          { id: 'cat-8', name: 'Home and Kitchen', slug: 'home-and-kitchen' },
+          { id: 'cat-9', name: 'Furniture', slug: 'furniture' },
+          { id: 'cat-10', name: 'Beauty Products', slug: 'beauty-products' },
+          { id: 'cat-11', name: 'Sports', slug: 'sports' },
+          { id: 'cat-12', name: 'Books', slug: 'books' },
+          { id: 'cat-13', name: 'Watches', slug: 'watches' },
+          { id: 'cat-14', name: 'Accessories', slug: 'accessories' },
+          { id: 'cat-15', name: 'Toys', slug: 'toys' }
         ]);
       });
   }, []);
@@ -146,14 +147,14 @@ export const Navbar = ({ onOpenAuth }) => {
             </div>
           </Link>
 
-          {/* 14 Categories Dropdown Trigger */}
+          {/* 15 Categories Dropdown Trigger */}
           <div className="relative hidden md:block">
             <button
               onClick={() => setCategoryDropdownOpen(prev => !prev)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-700"
             >
               <Layers className="w-4 h-4 text-cyan-500" />
-              <span>All 14 Categories</span>
+              <span>All 15 Departments</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
 
@@ -162,8 +163,11 @@ export const Navbar = ({ onOpenAuth }) => {
                 className="absolute left-0 mt-2 w-72 max-h-96 overflow-y-auto rounded-xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700 py-2 z-50 animate-in fade-in zoom-in-95 duration-100"
                 onClick={() => setCategoryDropdownOpen(false)}
               >
-                <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-700 text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Shop by Department
+                <div className="px-3.5 py-1.5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Shop by Department</span>
+                  <Link to="/categories" className="text-[10px] font-bold text-cyan-500 hover:underline">
+                    View All &rarr;
+                  </Link>
                 </div>
                 {categories.map((cat, idx) => (
                   <Link
