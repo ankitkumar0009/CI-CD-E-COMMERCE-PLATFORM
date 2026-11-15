@@ -1,5 +1,6 @@
+from collections.abc import Generator
 from decimal import Decimal
-from typing import Generator
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -22,11 +23,7 @@ test_engine = create_engine(
     poolclass=StaticPool,
 )
 
-TestingSessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=test_engine
-)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
 
 @pytest.fixture(scope="function")
@@ -42,7 +39,7 @@ def db() -> Generator[Session, None, None]:
         password_hash=get_password_hash("AdminSecret2026!"),
         full_name="Test Super Admin",
         is_active=True,
-        is_superuser=True
+        is_superuser=True,
     )
     session.add(admin)
 
@@ -55,7 +52,7 @@ def db() -> Generator[Session, None, None]:
             price=Decimal("24999.00"),
             stock=10,
             category="Electronics",
-            is_active=True
+            is_active=True,
         ),
         Product(
             sku="LAPT-001",
@@ -64,7 +61,7 @@ def db() -> Generator[Session, None, None]:
             price=Decimal("114900.00"),
             stock=5,
             category="Laptops",
-            is_active=True
+            is_active=True,
         ),
         Product(
             sku="MOBI-001",
@@ -73,7 +70,7 @@ def db() -> Generator[Session, None, None]:
             price=Decimal("79999.00"),
             stock=8,
             category="Mobile Phones",
-            is_active=True
+            is_active=True,
         ),
         Product(
             sku="APPA-001",
@@ -82,7 +79,7 @@ def db() -> Generator[Session, None, None]:
             price=Decimal("8995.00"),
             stock=20,
             category="Shoes",
-            is_active=True
+            is_active=True,
         ),
         Product(
             sku="INAC-001",
@@ -91,7 +88,7 @@ def db() -> Generator[Session, None, None]:
             price=Decimal("1999.00"),
             stock=0,
             category="Electronics",
-            is_active=False
+            is_active=False,
         ),
     ]
     session.add_all(sample_products)
@@ -106,6 +103,7 @@ def db() -> Generator[Session, None, None]:
 @pytest.fixture(scope="function")
 def client(db: Session) -> Generator[TestClient, None, None]:
     """TestClient fixture with overridden database dependency."""
+
     def override_get_db():
         try:
             yield db
@@ -125,8 +123,8 @@ def admin_token(client: TestClient) -> str:
         "/api/admin/login",
         json={
             "username_or_email": "admin@ecommerce.local",
-            "password": "AdminSecret2026!"
-        }
+            "password": "AdminSecret2026!",
+        },
     )
     assert response.status_code == 200
     data = response.json()
@@ -137,4 +135,3 @@ def admin_token(client: TestClient) -> str:
 def admin_headers(admin_token: str) -> dict:
     """Fixture that returns HTTP authorization headers with the admin token."""
     return {"Authorization": f"Bearer {admin_token}"}
-

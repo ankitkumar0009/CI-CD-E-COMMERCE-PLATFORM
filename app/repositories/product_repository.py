@@ -1,16 +1,17 @@
 from decimal import Decimal
-from typing import List, Optional, Tuple
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+
 from app.models.product import Product
 from app.schemas.product import ProductCreate, ProductUpdate
 
 
 class ProductRepository:
-    def get_by_id(self, db: Session, product_id: int) -> Optional[Product]:
+    def get_by_id(self, db: Session, product_id: int) -> Product | None:
         return db.scalar(select(Product).where(Product.id == product_id))
 
-    def get_by_id_for_update(self, db: Session, product_id: int) -> Optional[Product]:
+    def get_by_id_for_update(self, db: Session, product_id: int) -> Product | None:
         """Row-level lock for safe concurrent inventory deduction."""
         stmt = select(Product).where(Product.id == product_id)
         # SQLite does not support FOR UPDATE; postgresql does
@@ -18,20 +19,20 @@ class ProductRepository:
             stmt = stmt.with_for_update()
         return db.scalar(stmt)
 
-    def get_by_sku(self, db: Session, sku: str) -> Optional[Product]:
+    def get_by_sku(self, db: Session, sku: str) -> Product | None:
         return db.scalar(select(Product).where(Product.sku == sku))
 
     def list_products(
         self,
         db: Session,
-        search: Optional[str] = None,
-        category: Optional[str] = None,
-        min_price: Optional[Decimal] = None,
-        max_price: Optional[Decimal] = None,
+        search: str | None = None,
+        category: str | None = None,
+        min_price: Decimal | None = None,
+        max_price: Decimal | None = None,
         skip: int = 0,
         limit: int = 20,
-        active_only: bool = True
-    ) -> Tuple[List[Product], int]:
+        active_only: bool = True,
+    ) -> tuple[list[Product], int]:
         stmt = select(Product)
         if active_only:
             stmt = stmt.where(Product.is_active.is_(True))
@@ -53,9 +54,7 @@ class ProductRepository:
         total = db.scalar(count_stmt) or 0
 
         # Paginated results
-        items = db.scalars(
-            stmt.order_by(Product.id.asc()).offset(skip).limit(limit)
-        ).all()
+        items = db.scalars(stmt.order_by(Product.id.asc()).offset(skip).limit(limit)).all()
 
         return list(items), total
 
@@ -68,7 +67,7 @@ class ProductRepository:
             stock=data.stock,
             category=data.category,
             image_url=data.image_url,
-            is_active=True
+            is_active=True,
         )
         db.add(product)
         db.flush()
@@ -88,4 +87,3 @@ class ProductRepository:
         db.flush()
         db.refresh(product)
         return product
-

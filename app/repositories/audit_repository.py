@@ -1,6 +1,8 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+
 from app.models.audit_log import AuditLog
 
 
@@ -11,10 +13,10 @@ class AuditRepository:
         actor_email: str,
         action: str,
         resource_type: str,
-        resource_id: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
-        ip_address: Optional[str] = None,
-        actor_id: Optional[int] = None
+        resource_id: str | None = None,
+        details: dict[str, Any] | None = None,
+        ip_address: str | None = None,
+        actor_id: int | None = None,
     ) -> AuditLog:
         entry = AuditLog(
             actor_email=actor_email,
@@ -23,7 +25,7 @@ class AuditRepository:
             resource_type=resource_type,
             resource_id=str(resource_id) if resource_id is not None else None,
             details=details,
-            ip_address=ip_address
+            ip_address=ip_address,
         )
         db.add(entry)
         db.flush()
@@ -32,12 +34,12 @@ class AuditRepository:
     def list_logs(
         self,
         db: Session,
-        action: Optional[str] = None,
-        actor_email: Optional[str] = None,
-        resource_type: Optional[str] = None,
+        action: str | None = None,
+        actor_email: str | None = None,
+        resource_type: str | None = None,
         skip: int = 0,
-        limit: int = 20
-    ) -> Tuple[List[AuditLog], int]:
+        limit: int = 20,
+    ) -> tuple[list[AuditLog], int]:
         stmt = select(AuditLog)
         if action:
             stmt = stmt.where(AuditLog.action == action)
@@ -54,4 +56,3 @@ class AuditRepository:
         ).all()
 
         return list(items), total
-

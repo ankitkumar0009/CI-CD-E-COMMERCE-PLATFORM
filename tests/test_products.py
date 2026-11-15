@@ -55,4 +55,3 @@ def test_inactive_product_hidden_from_public(client: TestClient):
     # Product ID 5 is inactive
     response = client.get("/api/products/5")
     assert response.status_code == 404
-

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -13,6 +13,5 @@ class HealthResponse(BaseModel):
 class ReadyResponse(BaseModel):
     status: str = Field(description="Readiness status ('ready' or 'unhealthy')")
     database: str = Field(description="Database connectivity status")
-    details: Optional[str] = Field(default=None, description="Diagnostic details")
+    details: str | None = Field(default=None, description="Diagnostic details")
     timestamp: datetime = Field(description="Current UTC timestamp")
-

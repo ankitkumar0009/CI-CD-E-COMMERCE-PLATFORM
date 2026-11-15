@@ -9,4 +9,3 @@ __all__ = [
     "orders_router",
     "products_router",
 ]
-

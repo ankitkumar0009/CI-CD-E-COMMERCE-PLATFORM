@@ -1,8 +1,9 @@
 import math
 from decimal import Decimal
-from typing import Optional
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+
 from app.models.product import Product
 from app.models.user import AdminUser
 from app.repositories.audit_repository import AuditRepository
@@ -24,13 +25,13 @@ class ProductService:
     def list_products(
         self,
         db: Session,
-        search: Optional[str] = None,
-        category: Optional[str] = None,
-        min_price: Optional[Decimal] = None,
-        max_price: Optional[Decimal] = None,
+        search: str | None = None,
+        category: str | None = None,
+        min_price: Decimal | None = None,
+        max_price: Decimal | None = None,
         page: int = 1,
         page_size: int = 20,
-        active_only: bool = True
+        active_only: bool = True,
     ) -> ProductListResponse:
         page = max(1, page)
         page_size = min(max(1, page_size), 100)
@@ -44,7 +45,7 @@ class ProductService:
             max_price=max_price,
             skip=skip,
             limit=page_size,
-            active_only=active_only
+            active_only=active_only,
         )
 
         pages = math.ceil(total / page_size) if total > 0 else 1
@@ -54,7 +55,7 @@ class ProductService:
             page=page,
             page_size=page_size,
             pages=pages,
-            items=[ProductResponse.model_validate(item) for item in items]
+            items=[ProductResponse.model_validate(item) for item in items],
         )
 
     def get_product(self, db: Session, product_id: int) -> Product:
@@ -62,7 +63,7 @@ class ProductService:
         if not product or not product.is_active:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Product with ID {product_id} not found."
+                detail=f"Product with ID {product_id} not found.",
             )
         return product
 
@@ -71,14 +72,14 @@ class ProductService:
         db: Session,
         data: ProductCreate,
         admin: AdminUser,
-        ip_address: Optional[str] = None
+        ip_address: str | None = None,
     ) -> Product:
         # Check SKU uniqueness
         existing = self.repo.get_by_sku(db, data.sku)
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Product with SKU '{data.sku}' already exists."
+                detail=f"Product with SKU '{data.sku}' already exists.",
             )
 
         product = self.repo.create(db, data)
@@ -96,9 +97,9 @@ class ProductService:
                 "name": product.name,
                 "price": str(product.price),
                 "stock": product.stock,
-                "category": product.category
+                "category": product.category,
             },
-            ip_address=ip_address
+            ip_address=ip_address,
         )
         db.commit()
         return product
@@ -109,20 +110,20 @@ class ProductService:
         product_id: int,
         data: ProductUpdate,
         admin: AdminUser,
-        ip_address: Optional[str] = None
+        ip_address: str | None = None,
     ) -> Product:
         product = self.repo.get_by_id(db, product_id)
         if not product:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Product with ID {product_id} not found."
+                detail=f"Product with ID {product_id} not found.",
             )
 
         old_state = {
             "name": product.name,
             "price": str(product.price),
             "category": product.category,
-            "is_active": product.is_active
+            "is_active": product.is_active,
         }
 
         updated = self.repo.update(db, product, data)
@@ -137,9 +138,9 @@ class ProductService:
             resource_id=str(product.id),
             details={
                 "before": old_state,
-                "after": data.model_dump(exclude_unset=True, mode="json")
+                "after": data.model_dump(exclude_unset=True, mode="json"),
             },
-            ip_address=ip_address
+            ip_address=ip_address,
         )
         db.commit()
         return updated
@@ -150,13 +151,13 @@ class ProductService:
         product_id: int,
         data: StockUpdate,
         admin: AdminUser,
-        ip_address: Optional[str] = None
+        ip_address: str | None = None,
     ) -> Product:
         product = self.repo.get_by_id(db, product_id)
         if not product:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Product with ID {product_id} not found."
+                detail=f"Product with ID {product_id} not found.",
             )
 
         old_stock = product.stock
@@ -176,18 +177,18 @@ class ProductService:
             else:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid adjustment_type '{data.adjustment_type}'. Must be 'add', 'subtract', or 'set'."
+                    detail=f"Invalid adjustment_type '{data.adjustment_type}'. Must be 'add', 'subtract', or 'set'.",
                 )
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Must provide either 'stock', 'adjustment', or 'quantity' with 'adjustment_type'."
+                detail="Must provide either 'stock', 'adjustment', or 'quantity' with 'adjustment_type'.",
             )
 
         if new_stock < 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Stock cannot be negative. Current: {old_stock}, requested adjustment: {data.adjustment}"
+                detail=f"Stock cannot be negative. Current: {old_stock}, requested adjustment: {data.adjustment}",
             )
 
         updated = self.repo.update_stock(db, product, new_stock)
@@ -204,10 +205,9 @@ class ProductService:
                 "old_stock": old_stock,
                 "new_stock": new_stock,
                 "change": new_stock - old_stock,
-                "reason": data.reason
+                "reason": data.reason,
             },
-            ip_address=ip_address
+            ip_address=ip_address,
         )
         db.commit()
         return updated
-

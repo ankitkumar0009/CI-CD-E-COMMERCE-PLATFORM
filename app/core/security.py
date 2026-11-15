@@ -1,17 +1,16 @@
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
 import bcrypt
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
 from jose import JWTError, jwt
+
 from app.core.config import settings
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against the stored bcrypt hash."""
     try:
-        return bcrypt.checkpw(
-            plain_password.encode("utf-8")[:72],
-            hashed_password.encode("utf-8")
-        )
+        return bcrypt.checkpw(plain_password.encode("utf-8")[:72], hashed_password.encode("utf-8"))
     except Exception:
         return False
 
@@ -25,11 +24,11 @@ def get_password_hash(password: str) -> str:
 
 def create_access_token(
     subject: str | Any,
-    claims: Optional[Dict[str, Any]] = None,
-    expires_delta: Optional[timedelta] = None
+    claims: dict[str, Any] | None = None,
+    expires_delta: timedelta | None = None,
 ) -> str:
     """Create a signed JWT access token."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if expires_delta:
         expire = now + expires_delta
     else:
@@ -43,23 +42,14 @@ def create_access_token(
     if claims:
         to_encode.update(claims)
 
-    encoded_jwt = jwt.encode(
-        to_encode,
-        settings.JWT_SECRET_KEY,
-        algorithm=settings.JWT_ALGORITHM
-    )
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
     return encoded_jwt
 
 
-def decode_access_token(token: str) -> Dict[str, Any]:
+def decode_access_token(token: str) -> dict[str, Any]:
     """Decode and validate a signed JWT token."""
     try:
-        payload = jwt.decode(
-            token,
-            settings.JWT_SECRET_KEY,
-            algorithms=[settings.JWT_ALGORITHM]
-        )
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
         return payload
     except JWTError as err:
         raise ValueError(f"Invalid or expired token: {err}") from err
-

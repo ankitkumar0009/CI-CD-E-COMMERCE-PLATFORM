@@ -1,16 +1,18 @@
 import hashlib
 import json
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+
 from app.models.order import Order
 from app.repositories.order_repository import OrderRepository
 from app.repositories.product_repository import ProductRepository
 from app.schemas.order import OrderCreate, OrderResponse
 
 
-def calculate_request_hash(payload: Dict[str, Any]) -> str:
+def calculate_request_hash(payload: dict[str, Any]) -> str:
     """Calculate deterministic SHA-256 hash of order creation payload."""
     serialized = json.dumps(payload, sort_keys=True, default=str)
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
@@ -26,7 +28,7 @@ class OrderService:
         if not order:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Order with ID {order_id} not found."
+                detail=f"Order with ID {order_id} not found.",
             )
         return order
 
@@ -34,8 +36,8 @@ class OrderService:
         self,
         db: Session,
         order_data: OrderCreate,
-        idempotency_key: Optional[str] = None
-    ) -> Dict[str, Any]:
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
         """
         Create customer order with atomic inventory deduction and idempotency guarantee.
         """
@@ -54,7 +56,7 @@ class OrderService:
                     return {
                         "status_code": existing_record.response_code,
                         "data": existing_record.response_body,
-                        "is_cached": True
+                        "is_cached": True,
                     }
                 else:
                     # Same key, different payload: reject
@@ -63,29 +65,29 @@ class OrderService:
                         detail=(
                             f"Idempotency conflict: Key '{idempotency_key}' was previously used "
                             "with a different order request payload."
-                        )
+                        ),
                     )
 
         # 2. Validate Items & Quantities
         if not order_data.items:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Order must contain at least one product."
+                detail="Order must contain at least one product.",
             )
 
         # Deduplicate requested product IDs within order
-        aggregated_quantities: Dict[int, int] = {}
+        aggregated_quantities: dict[int, int] = {}
         for item in order_data.items:
             if item.quantity <= 0:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid quantity {item.quantity} for product ID {item.product_id}. Quantity must be positive."
+                    detail=f"Invalid quantity {item.quantity} for product ID {item.product_id}. Quantity must be positive.",
                 )
             aggregated_quantities[item.product_id] = (
                 aggregated_quantities.get(item.product_id, 0) + item.quantity
             )
 
-        items_to_create: List[Dict[str, Any]] = []
+        items_to_create: list[dict[str, Any]] = []
         total_amount = Decimal("0.00")
 
         # 3. Lock products and check stock availability
@@ -97,13 +99,13 @@ class OrderService:
             if not product:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Product with ID {product_id} does not exist."
+                    detail=f"Product with ID {product_id} does not exist.",
                 )
 
             if not product.is_active:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Product '{product.name}' (ID {product_id}) is inactive and cannot be ordered."
+                    detail=f"Product '{product.name}' (ID {product_id}) is inactive and cannot be ordered.",
                 )
 
             if product.stock < quantity:
@@ -112,7 +114,7 @@ class OrderService:
                     detail=(
                         f"Insufficient inventory for '{product.name}' (SKU: {product.sku}). "
                         f"Requested: {quantity}, Available in stock: {product.stock}."
-                    )
+                    ),
                 )
 
             # Deduct inventory safely
@@ -122,13 +124,15 @@ class OrderService:
             subtotal = unit_price * quantity
             total_amount += subtotal
 
-            items_to_create.append({
-                "product_id": product.id,
-                "product_name": product.name,
-                "unit_price": unit_price,
-                "quantity": quantity,
-                "subtotal": subtotal
-            })
+            items_to_create.append(
+                {
+                    "product_id": product.id,
+                    "product_name": product.name,
+                    "unit_price": unit_price,
+                    "quantity": quantity,
+                    "subtotal": subtotal,
+                }
+            )
 
         # 4. Create Order & Items
         order = self.order_repo.create_order(
@@ -138,7 +142,7 @@ class OrderService:
             shipping_address=order_data.shipping_address,
             total_amount=total_amount,
             items_data=items_to_create,
-            idempotency_key=idempotency_key
+            idempotency_key=idempotency_key,
         )
 
         response_data = OrderResponse.model_validate(order).model_dump(mode="json")
@@ -151,7 +155,7 @@ class OrderService:
                 request_hash=request_hash,
                 response_code=status.HTTP_201_CREATED,
                 response_body=response_data,
-                order_id=order.id
+                order_id=order.id,
             )
 
         db.commit()
@@ -159,6 +163,5 @@ class OrderService:
         return {
             "status_code": status.HTTP_201_CREATED,
             "data": response_data,
-            "is_cached": False
+            "is_cached": False,
         }
-

@@ -9,7 +9,7 @@ def test_audit_logs_recorded_on_admin_actions(client: TestClient, admin_headers:
         "price": "1499.00",
         "stock": 50,
         "category": "Testing",
-        "is_active": True
+        "is_active": True,
     }
     create_res = client.post("/api/admin/products", json=prod_payload, headers=admin_headers)
     assert create_res.status_code == 201
@@ -19,7 +19,7 @@ def test_audit_logs_recorded_on_admin_actions(client: TestClient, admin_headers:
     stock_res = client.patch(
         f"/api/admin/products/{created_id}/stock",
         json={"quantity": 10, "adjustment_type": "add", "reason": "Audit restock test"},
-        headers=admin_headers
+        headers=admin_headers,
     )
     assert stock_res.status_code == 200
 
@@ -48,4 +48,3 @@ def test_audit_logs_filtering_by_action(client: TestClient, admin_headers: dict)
 def test_audit_logs_unauthorized_access(client: TestClient):
     response = client.get("/api/admin/audit-logs")
     assert response.status_code == 401
-

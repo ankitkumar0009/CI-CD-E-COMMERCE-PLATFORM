@@ -7,9 +7,7 @@ def test_create_order_single_item_success(client: TestClient):
         "customer_name": "John Doe",
         "customer_email": "john.doe@example.com",
         "shipping_address": "123 Innovation Way, Tech Park, Bangalore 560103",
-        "items": [
-            {"product_id": 1, "quantity": 2}
-        ]
+        "items": [{"product_id": 1, "quantity": 2}],
     }
 
     response = client.post("/api/orders", json=payload)
@@ -36,10 +34,7 @@ def test_create_order_multiple_items_price_calculation(client: TestClient):
         "customer_name": "Jane Smith",
         "customer_email": "jane@example.com",
         "shipping_address": "456 Market St, Mumbai 400001",
-        "items": [
-            {"product_id": 1, "quantity": 1},
-            {"product_id": 4, "quantity": 2}
-        ]
+        "items": [{"product_id": 1, "quantity": 1}, {"product_id": 4, "quantity": 2}],
     }
 
     response = client.post("/api/orders", json=payload)
@@ -61,7 +56,7 @@ def test_order_creation_insufficient_inventory(client: TestClient):
         "shipping_address": "789 Highway, Delhi",
         "items": [
             {"product_id": 2, "quantity": 10}  # Demands 10, only 5 available
-        ]
+        ],
     }
 
     response = client.post("/api/orders", json=payload)
@@ -78,9 +73,7 @@ def test_order_creation_invalid_product_id(client: TestClient):
         "customer_name": "Tester",
         "customer_email": "test@example.com",
         "shipping_address": "Test Road",
-        "items": [
-            {"product_id": 99999, "quantity": 1}
-        ]
+        "items": [{"product_id": 99999, "quantity": 1}],
     }
 
     response = client.post("/api/orders", json=payload)
@@ -95,7 +88,7 @@ def test_order_creation_invalid_quantity(client: TestClient):
         "shipping_address": "Test Road",
         "items": [
             {"product_id": 1, "quantity": 0}  # Must be >= 1
-        ]
+        ],
     }
 
     response = client.post("/api/orders", json=payload)
@@ -103,16 +96,18 @@ def test_order_creation_invalid_quantity(client: TestClient):
 
 
 def test_get_order_by_id(client: TestClient):
-    create_res = client.post("/api/orders", json={
-        "customer_name": "Alice Wonderland",
-        "customer_email": "alice@wonder.com",
-        "shipping_address": "Rabbit Hole 1",
-        "items": [{"product_id": 1, "quantity": 1}]
-    })
+    create_res = client.post(
+        "/api/orders",
+        json={
+            "customer_name": "Alice Wonderland",
+            "customer_email": "alice@wonder.com",
+            "shipping_address": "Rabbit Hole 1",
+            "items": [{"product_id": 1, "quantity": 1}],
+        },
+    )
     assert create_res.status_code == 201
     order_id = create_res.json()["id"]
 
     get_res = client.get(f"/api/orders/{order_id}")
     assert get_res.status_code == 200
     assert get_res.json()["customer_name"] == "Alice Wonderland"
-

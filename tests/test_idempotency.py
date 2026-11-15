@@ -1,4 +1,5 @@
 import uuid
+
 from fastapi.testclient import TestClient
 
 
@@ -18,9 +19,7 @@ def test_order_creation_with_idempotency_key_replay(client: TestClient):
         "customer_name": "Idempotent Buyer",
         "customer_email": "idem@example.com",
         "shipping_address": "42 Consistency Rd, Cache City",
-        "items": [
-            {"product_id": 1, "quantity": 3}
-        ]
+        "items": [{"product_id": 1, "quantity": 3}],
     }
 
     # First request: Creates order, deducts 3 items (stock becomes 7)
@@ -61,14 +60,14 @@ def test_order_creation_idempotency_conflict_on_payload_mismatch(client: TestCli
         "customer_name": "Buyer A",
         "customer_email": "buyer.a@example.com",
         "shipping_address": "Street A",
-        "items": [{"product_id": 1, "quantity": 1}]
+        "items": [{"product_id": 1, "quantity": 1}],
     }
 
     payload_b = {
         "customer_name": "Buyer B",
         "customer_email": "buyer.b@example.com",
         "shipping_address": "Street B",
-        "items": [{"product_id": 1, "quantity": 2}]
+        "items": [{"product_id": 1, "quantity": 2}],
     }
 
     # First request succeeds
@@ -90,7 +89,7 @@ def test_order_creation_without_idempotency_key(client: TestClient):
         "customer_name": "Standard Buyer",
         "customer_email": "standard@example.com",
         "shipping_address": "Standard Lane",
-        "items": [{"product_id": 4, "quantity": 1}]
+        "items": [{"product_id": 4, "quantity": 1}],
     }
 
     # Request 1 without header
@@ -104,4 +103,3 @@ def test_order_creation_without_idempotency_key(client: TestClient):
     order2_num = res2.json()["order_number"]
 
     assert order1_num != order2_num
-

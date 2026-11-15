@@ -6,8 +6,8 @@ def test_admin_login_success(client: TestClient):
         "/api/admin/login",
         json={
             "username_or_email": "admin@ecommerce.local",
-            "password": "AdminSecret2026!"
-        }
+            "password": "AdminSecret2026!",
+        },
     )
     assert response.status_code == 200
     data = response.json()
@@ -23,8 +23,8 @@ def test_admin_login_invalid_credentials(client: TestClient):
         "/api/admin/login",
         json={
             "username_or_email": "admin@ecommerce.local",
-            "password": "WrongPassword123"
-        }
+            "password": "WrongPassword123",
+        },
     )
     assert response.status_code == 401
     detail = response.json()["detail"].lower()
@@ -35,8 +35,8 @@ def test_admin_login_invalid_credentials(client: TestClient):
         "/api/admin/login",
         json={
             "username_or_email": "nonexistent@ecommerce.local",
-            "password": "Password123!"
-        }
+            "password": "Password123!",
+        },
     )
     assert response_unknown.status_code == 401
 
@@ -50,16 +50,22 @@ def test_admin_unauthorized_access(client: TestClient):
             "name": "Unauthorized Item",
             "price": "99.00",
             "stock": 5,
-            "category": "Test"
-        }
+            "category": "Test",
+        },
     )
     assert response.status_code == 401
 
     # Malformed token
     response_invalid = client.post(
         "/api/admin/products",
-        json={"sku": "UNAUTH-01", "name": "Item", "price": "10.00", "stock": 1, "category": "Test"},
-        headers={"Authorization": "Bearer invalid.jwt.token"}
+        json={
+            "sku": "UNAUTH-01",
+            "name": "Item",
+            "price": "10.00",
+            "stock": 1,
+            "category": "Test",
+        },
+        headers={"Authorization": "Bearer invalid.jwt.token"},
     )
     assert response_invalid.status_code == 401
 
@@ -72,7 +78,7 @@ def test_admin_create_product(client: TestClient, admin_headers: dict):
         "price": "59900.00",
         "stock": 15,
         "category": "Electronics",
-        "is_active": True
+        "is_active": True,
     }
 
     response = client.post("/api/admin/products", json=payload, headers=admin_headers)
@@ -95,7 +101,7 @@ def test_admin_update_product(client: TestClient, admin_headers: dict):
         "name": "Sony WH-1000XM5 Premium Edition",
         "price": "26999.00",
         "description": "Updated noise-cancelling headphones",
-        "is_active": True
+        "is_active": True,
     }
 
     response = client.put("/api/admin/products/1", json=update_payload, headers=admin_headers)
@@ -114,8 +120,12 @@ def test_admin_stock_adjustment_operations(client: TestClient, admin_headers: di
     # 1. Add stock
     add_res = client.patch(
         "/api/admin/products/1/stock",
-        json={"quantity": 5, "adjustment_type": "add", "reason": "Restock shipment received"},
-        headers=admin_headers
+        json={
+            "quantity": 5,
+            "adjustment_type": "add",
+            "reason": "Restock shipment received",
+        },
+        headers=admin_headers,
     )
     assert add_res.status_code == 200
     assert add_res.json()["stock"] == 15
@@ -123,8 +133,12 @@ def test_admin_stock_adjustment_operations(client: TestClient, admin_headers: di
     # 2. Subtract stock
     sub_res = client.patch(
         "/api/admin/products/1/stock",
-        json={"quantity": 3, "adjustment_type": "subtract", "reason": "Damaged goods return"},
-        headers=admin_headers
+        json={
+            "quantity": 3,
+            "adjustment_type": "subtract",
+            "reason": "Damaged goods return",
+        },
+        headers=admin_headers,
     )
     assert sub_res.status_code == 200
     assert sub_res.json()["stock"] == 12
@@ -132,8 +146,12 @@ def test_admin_stock_adjustment_operations(client: TestClient, admin_headers: di
     # 3. Direct Set stock
     set_res = client.patch(
         "/api/admin/products/1/stock",
-        json={"quantity": 25, "adjustment_type": "set", "reason": "Inventory audit sync"},
-        headers=admin_headers
+        json={
+            "quantity": 25,
+            "adjustment_type": "set",
+            "reason": "Inventory audit sync",
+        },
+        headers=admin_headers,
     )
     assert set_res.status_code == 200
     assert set_res.json()["stock"] == 25
@@ -141,11 +159,14 @@ def test_admin_stock_adjustment_operations(client: TestClient, admin_headers: di
     # 4. Prevent negative inventory
     invalid_sub = client.patch(
         "/api/admin/products/1/stock",
-        json={"quantity": 100, "adjustment_type": "subtract", "reason": "Invalid large deduction"},
-        headers=admin_headers
+        json={
+            "quantity": 100,
+            "adjustment_type": "subtract",
+            "reason": "Invalid large deduction",
+        },
+        headers=admin_headers,
     )
     assert invalid_sub.status_code == 400
     assert "negative" in invalid_sub.json()["detail"].lower()
     # Stock remains 25
     assert client.get("/api/products/1").json()["stock"] == 25
-

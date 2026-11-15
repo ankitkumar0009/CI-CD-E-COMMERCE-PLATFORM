@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -25,7 +25,7 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in_minutes: int
     user: AdminUserResponse
-    admin: Optional[AdminUserResponse] = None
+    admin: AdminUserResponse | None = None
 
     @classmethod
     def create(cls, access_token: str, expires_in_minutes: int, user: AdminUserResponse):
@@ -34,6 +34,5 @@ class TokenResponse(BaseModel):
             token_type="bearer",
             expires_in_minutes=expires_in_minutes,
             user=user,
-            admin=user
+            admin=user,
         )
-

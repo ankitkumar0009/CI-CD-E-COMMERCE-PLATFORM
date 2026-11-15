@@ -1,6 +1,7 @@
+import logging
 import time
 import uuid
-import logging
+
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
@@ -34,8 +35,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                         "path": request.url.path,
                         "status_code": response.status_code,
                         "duration_ms": duration_ms,
-                        "client_ip": client_ip
-                    }
+                        "client_ip": client_ip,
+                    },
                 )
 
             return response
@@ -49,8 +50,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                     "method": request.method,
                     "path": request.url.path,
                     "duration_ms": duration_ms,
-                    "client_ip": client_ip
-                }
+                    "client_ip": client_ip,
+                },
             )
             raise
-

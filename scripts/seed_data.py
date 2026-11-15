@@ -7,10 +7,11 @@ from decimal import Decimal
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from sqlalchemy import select
+
 from app.core.config import settings
 from app.core.security import get_password_hash
-from app.database.session import SessionLocal, engine
 from app.database.base import Base
+from app.database.session import SessionLocal, engine
 from app.models.product import Product
 from app.models.user import AdminUser
 
@@ -25,7 +26,7 @@ SAMPLE_PRODUCTS = [
         "price": Decimal("26999.00"),
         "stock": 50,
         "category": "Electronics",
-        "image_url": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80"
+        "image_url": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80",
     },
     {
         "sku": "MOBI-APPL-015",
@@ -34,7 +35,7 @@ SAMPLE_PRODUCTS = [
         "price": Decimal("134900.00"),
         "stock": 25,
         "category": "Mobile Phones",
-        "image_url": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=600&q=80"
+        "image_url": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=600&q=80",
     },
     {
         "sku": "LAPT-DELL-X15",
@@ -43,7 +44,7 @@ SAMPLE_PRODUCTS = [
         "price": Decimal("189990.00"),
         "stock": 15,
         "category": "Laptops",
-        "image_url": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=600&q=80"
+        "image_url": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=600&q=80",
     },
     {
         "sku": "LAPT-APPL-M3P",
@@ -52,7 +53,7 @@ SAMPLE_PRODUCTS = [
         "price": Decimal("199900.00"),
         "stock": 20,
         "category": "Laptops",
-        "image_url": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=600&q=80"
+        "image_url": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=600&q=80",
     },
     {
         "sku": "ELEC-WATC-U2",
@@ -61,7 +62,7 @@ SAMPLE_PRODUCTS = [
         "price": Decimal("89900.00"),
         "stock": 30,
         "category": "Watches",
-        "image_url": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80"
+        "image_url": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80",
     },
     {
         "sku": "MOBI-SAMS-S24",
@@ -70,7 +71,7 @@ SAMPLE_PRODUCTS = [
         "price": Decimal("129999.00"),
         "stock": 35,
         "category": "Mobile Phones",
-        "image_url": "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?auto=format&fit=crop&w=600&q=80"
+        "image_url": "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?auto=format&fit=crop&w=600&q=80",
     },
     {
         "sku": "APPA-NIK-AF1",
@@ -79,7 +80,7 @@ SAMPLE_PRODUCTS = [
         "price": Decimal("7495.00"),
         "stock": 60,
         "category": "Shoes",
-        "image_url": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80"
+        "image_url": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80",
     },
     {
         "sku": "HOME-COFF-001",
@@ -88,7 +89,7 @@ SAMPLE_PRODUCTS = [
         "price": Decimal("48500.00"),
         "stock": 18,
         "category": "Home and Kitchen",
-        "image_url": "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80"
+        "image_url": "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80",
     },
     {
         "sku": "FURN-ERGO-001",
@@ -97,7 +98,7 @@ SAMPLE_PRODUCTS = [
         "price": Decimal("98000.00"),
         "stock": 12,
         "category": "Furniture",
-        "image_url": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80"
+        "image_url": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80",
     },
     {
         "sku": "ELEC-KEYB-MEC",
@@ -106,7 +107,7 @@ SAMPLE_PRODUCTS = [
         "price": Decimal("16499.00"),
         "stock": 40,
         "category": "Electronics",
-        "image_url": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=600&q=80"
+        "image_url": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=600&q=80",
     },
     {
         "sku": "BOOK-CLEA-ARCH",
@@ -115,7 +116,7 @@ SAMPLE_PRODUCTS = [
         "price": Decimal("899.00"),
         "stock": 100,
         "category": "Books",
-        "image_url": "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=600&q=80"
+        "image_url": "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=600&q=80",
     },
     {
         "sku": "SPOR-DUMB-SET",
@@ -124,8 +125,8 @@ SAMPLE_PRODUCTS = [
         "price": Decimal("38999.00"),
         "stock": 22,
         "category": "Sports",
-        "image_url": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=600&q=80"
-    }
+        "image_url": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=600&q=80",
+    },
 ]
 
 
@@ -146,7 +147,7 @@ def seed_database():
                 password_hash=get_password_hash(settings.ADMIN_DEFAULT_PASSWORD),
                 full_name="Platform Super Admin",
                 is_active=True,
-                is_superuser=True
+                is_superuser=True,
             )
             db.add(admin)
             db.commit()
@@ -167,13 +168,15 @@ def seed_database():
                     stock=prod_data["stock"],
                     category=prod_data["category"],
                     image_url=prod_data.get("image_url"),
-                    is_active=True
+                    is_active=True,
                 )
                 db.add(prod)
                 inserted_count += 1
 
         db.commit()
-        logger.info(f"✅ Successfully seeded {inserted_count} new products. Total catalog size: {len(SAMPLE_PRODUCTS)}")
+        logger.info(
+            f"✅ Successfully seeded {inserted_count} new products. Total catalog size: {len(SAMPLE_PRODUCTS)}"
+        )
 
     except Exception as exc:
         db.rollback()
@@ -185,4 +188,3 @@ def seed_database():
 
 if __name__ == "__main__":
     seed_database()
-

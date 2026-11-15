@@ -1,8 +1,8 @@
-from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
+
 from app.core.config import settings
 from app.core.security import create_access_token, decode_access_token, verify_password
 from app.database.session import get_db
@@ -22,13 +22,13 @@ class AuthService:
         db: Session,
         username_or_email: str,
         password: str,
-        ip_address: Optional[str] = None
+        ip_address: str | None = None,
     ) -> TokenResponse:
         user = db.scalar(
             select(AdminUser).where(
                 or_(
                     AdminUser.username == username_or_email.strip(),
-                    AdminUser.email == username_or_email.strip().lower()
+                    AdminUser.email == username_or_email.strip().lower(),
                 )
             )
         )
@@ -44,7 +44,7 @@ class AuthService:
                     resource_type="AUTH",
                     resource_id=str(user.id),
                     details={"reason": "Invalid password"},
-                    ip_address=ip_address
+                    ip_address=ip_address,
                 )
                 db.commit()
 
@@ -57,7 +57,7 @@ class AuthService:
         if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admin account is disabled."
+                detail="Admin account is disabled.",
             )
 
         # Generate JWT
@@ -66,8 +66,8 @@ class AuthService:
             claims={
                 "email": user.email,
                 "username": user.username,
-                "is_superuser": user.is_superuser
-            }
+                "is_superuser": user.is_superuser,
+            },
         )
 
         # Audit Log successful login
@@ -79,7 +79,7 @@ class AuthService:
             resource_type="AUTH",
             resource_id=str(user.id),
             details={"username": user.username},
-            ip_address=ip_address
+            ip_address=ip_address,
         )
         db.commit()
 
@@ -89,7 +89,7 @@ class AuthService:
             token_type="bearer",
             expires_in_minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
             user=admin_resp,
-            admin=admin_resp
+            admin=admin_resp,
         )
 
 
@@ -98,7 +98,7 @@ auth_service = AuthService()
 
 def get_current_admin(
     credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> AdminUser:
     """Dependency protecting admin-only endpoints."""
     token = credentials.credentials
@@ -125,8 +125,7 @@ def get_current_admin(
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin user account is inactive."
+            detail="Admin user account is inactive.",
         )
 
     return user
-
