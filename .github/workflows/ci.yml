@@ -14,8 +14,6 @@ concurrency:
 permissions:
   contents: read
   packages: write
-  pages: write
-  id-token: write
 
 jobs:
   # ============================================================================
@@ -133,66 +131,12 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  # ============================================================================
-  # Stage 3: Deploy Frontend Marketplace Application to GitHub Pages
-  # ============================================================================
-  deploy-github-pages:
-    name: 🌐 Deploy Marketplace to GitHub Pages
-    needs: [lint-and-test]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install Frontend Dependencies
-        working-directory: ./frontend
-        run: npm ci
-
-      - name: Build Vite Distribution for GitHub Pages
-        working-directory: ./frontend
-        env:
-          GITHUB_PAGES: 'true'
-        run: npm run build
-
-      - name: Setup GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./frontend/dist
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-  # ============================================================================
-  # Stage 4: Publish Summary
-  # ============================================================================
-  publish-summary:
-    name: 📊 Publish Deployment Summary
-    needs: [build-and-publish-container, deploy-github-pages]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Summary Output
+      - name: Publish Summary to Step Summary
+        if: always()
         run: |
-          echo "### 🚀 CI/CD GitHub Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 CI/CD Pipeline & Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: \`${{ github.ref }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Quality Gate (Ruff & Pytest)**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
-          echo "- **Container Vulnerability Scan (Trivy)**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
-          echo "- **GitHub Container Registry (GHCR)**: Published to \`ghcr.io/${{ github.repository }}:latest\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **GitHub Pages URL**: https://${{ github.repository_owner }}.github.io/CI-CD-E-COMMERCE-PLATFORM/" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trivy Container & Code Scan**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Container Registry Deployment**: Published to \`ghcr.io/${{ github.repository }}:latest\`" >> $GITHUB_STEP_SUMMARY
