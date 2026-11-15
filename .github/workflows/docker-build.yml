@@ -1,17 +1,6 @@
 name: Docker Multi-Stage Build & Image Verification
 
 on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'backend/Dockerfile*'
-      - 'frontend/Dockerfile*'
-      - 'docker-compose*.yml'
-  pull_request:
-    paths:
-      - 'backend/Dockerfile*'
-      - 'frontend/Dockerfile*'
-      - 'docker-compose*.yml'
   workflow_dispatch:
 
 jobs:
@@ -36,9 +25,8 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: false
+          load: true
           tags: shopsphere/backend:test-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Build Frontend Nginx Container
         uses: docker/build-push-action@v5
@@ -46,9 +34,8 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: false
+          load: true
           tags: shopsphere/frontend:test-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Docker Container Smoke Test
         run: |
