@@ -48,9 +48,9 @@ jobs:
 
       - name: Execute Automated Test Suite (Pytest)
         env:
-          DATABASE_URL: sqlite:///:memory:
-          SECRET_KEY: test-secret-key-for-github-actions-ci-min-32-chars
-          ENVIRONMENT: test
+          DATABASE_URL: "sqlite:///:memory:"
+          SECRET_KEY: "test-secret-key-for-github-actions-ci-min-32-chars"
+          ENVIRONMENT: "test"
         run: |
           echo "::group::Pytest Execution"
           pytest tests -v --durations=10
