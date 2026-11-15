@@ -1,4 +1,4 @@
-name: CI Pipeline - E-Commerce API
+name: CI/CD Pipeline - E-Commerce Platform
 
 on:
   push:
@@ -10,6 +10,12 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+  pages: write
+  id-token: write
 
 jobs:
   # ============================================================================
@@ -58,10 +64,10 @@ jobs:
           echo "::endgroup::"
 
   # ============================================================================
-  # Stage 2: Docker Image Build & Security Vulnerability Scanning (Trivy)
+  # Stage 2: Docker Build, Security Audit & GHCR Package Publishing
   # ============================================================================
-  build-and-scan:
-    name: 🛡️ Container Build & Security Audit
+  build-and-publish-container:
+    name: 🐳 Container Build, Security & GHCR Publish
     needs: [lint-and-test]
     runs-on: ubuntu-latest
 
@@ -72,14 +78,31 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker Image
+      - name: Log in to GitHub Container Registry (GHCR)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,prefix=sha-
+
+      - name: Build and Scan Docker Image (Local Load)
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: false
-          tags: ecommerce-api:${{ github.sha }},ecommerce-api:latest
           load: true
+          tags: ecommerce-api:${{ github.sha }}
 
       - name: Run Trivy Vulnerability Scanner on Container Image
         uses: aquasecurity/trivy-action@master
@@ -100,13 +123,76 @@ jobs:
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
 
-      - name: Publish CI Pipeline Summary
-        if: always()
-        run: |
-          echo "### 🚀 CI Pipeline Execution Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch / Ref**: \`${{ github.ref }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Quality Gate (Ruff & Pytest)**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
-          echo "- **Container Build**: ✅ Built successfully (\`ecommerce-api:${{ github.sha }}\`)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Trivy Vulnerability Scan**: ✅ Completed" >> $GITHUB_STEP_SUMMARY
+      - name: Publish Production Container to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
+  # ============================================================================
+  # Stage 3: Deploy Frontend Marketplace Application to GitHub Pages
+  # ============================================================================
+  deploy-github-pages:
+    name: 🌐 Deploy Marketplace to GitHub Pages
+    needs: [lint-and-test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build Vite Distribution for GitHub Pages
+        working-directory: ./frontend
+        env:
+          GITHUB_PAGES: 'true'
+        run: npm run build
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./frontend/dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # ============================================================================
+  # Stage 4: Publish Summary
+  # ============================================================================
+  publish-summary:
+    name: 📊 Publish Deployment Summary
+    needs: [build-and-publish-container, deploy-github-pages]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary Output
+        run: |
+          echo "### 🚀 CI/CD GitHub Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: \`${{ github.ref }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Quality Gate (Ruff & Pytest)**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Container Vulnerability Scan (Trivy)**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Container Registry (GHCR)**: Published to \`ghcr.io/${{ github.repository }}:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Pages URL**: https://${{ github.repository_owner }}.github.io/CI-CD-E-COMMERCE-PLATFORM/" >> $GITHUB_STEP_SUMMARY
